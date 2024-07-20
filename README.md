@@ -1,6 +1,6 @@
-# LEAP - Atmospheric Physics using AI (ClimSim) - [n]th Place Solution (Ryota Part)
+# LEAP - Atmospheric Physics using AI (ClimSim) - 7th Place Solution (Ryota Part)
 
-This repository contains the code for the [n]th place solution (Ryota Part) in the LEAP - Atmospheric Physics using AI (ClimSim) competition hosted on Kaggle. In this competition, participants were tasked with developing machine learning models that accurately emulate subgrid-scale atmospheric physics in an operational climate model, an important step in improving climate projections and reducing uncertainty surrounding future climate trends.
+This repository contains the code for the 7th place solution (Ryota Part) in the LEAP - Atmospheric Physics using AI (ClimSim) competition hosted on Kaggle. In this competition, participants were tasked with developing machine learning models that accurately emulate subgrid-scale atmospheric physics in an operational climate model, an important step in improving climate projections and reducing uncertainty surrounding future climate trends.
 
 ## Solution Summary
 
