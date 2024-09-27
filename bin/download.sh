@@ -2,8 +2,11 @@
 
 . .venv/bin/activate
 
+full_train_download={$1:-"false"}
+hf_download={$2:-"false"}
+
 # Download Kaggle Competition Data
-if [ "$1" = "true" ]; then
+if [ "$full_train_download" = "true" ]; then
   kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f train.csv -p data/input
 else
   # This dataset is a downsampled version (1M samples).
@@ -14,10 +17,25 @@ kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f test_old.
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission.csv -p data/input
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission_old.csv -p data/input
 
+# Check if unzip is installed
+if ! command -v unzip &> /dev/null; then
+    sudo apt-get update
+    sudo apt-get install -y unzip
+fi
+
+# Unzip the downloaded files
+for file in data/input/*.zip; do
+    if [ -f "$file" ]; then
+        unzip -o "$file" -d data/input &> /dev/null
+        rm "$file"
+    fi
+done
+
 # Download Necessary Data for Host Repo
+curl -L -o data/input/additional/ClimSim_low-res_grid-info.nc https://github.com/leap-stc/ClimSim/raw/main/grid_info/ClimSim_low-res_grid-info.nc
+curl -L -o data/input/additional/output_scale.nc https://github.com/leap-stc/ClimSim/raw/main/preprocessing/normalizations/outputs/output_scale.nc
 
-
-
-# 指定する引数
-# - コンペ学習データを全てダウンロードするか
-# - HFデータをダウンロードするか
+# Download HF Additional Data
+if [ "$hf_download" = "true" ]; then
+    python src/data/hf_download.py
+fi
