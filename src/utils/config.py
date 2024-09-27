@@ -3,7 +3,7 @@ from pathlib import Path, PosixPath
 from omegaconf import DictConfig, OmegaConf
 
 
-def get_config(exp: str, config_dir: Path = PosixPath("../config")) -> DictConfig:
+def get_config(exp: str, config_dir: PosixPath = Path("../config")) -> DictConfig:
     OmegaConf.register_new_resolver("path", lambda x: Path(x), replace=True)
     global_config = OmegaConf.load(config_dir / "global.yml")
     exp_config = OmegaConf.load(config_dir / f"exp_{exp}.yml")
