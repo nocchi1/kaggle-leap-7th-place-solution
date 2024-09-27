@@ -17,7 +17,7 @@ kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f test_old.
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission.csv -p data/input
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission_old.csv -p data/input
 
-# Check if unzip is installed
+# Install unzip if not installed
 if ! command -v unzip &> /dev/null; then
     sudo apt-get update
     sudo apt-get install -y unzip
@@ -37,5 +37,5 @@ curl -L -o data/input/additional/output_scale.nc https://github.com/leap-stc/Cli
 
 # Download HF Additional Data
 if [ "$hf_download" = "true" ]; then
-    python src/data/hf_download.py
+    python src/data/hf_download.py # This will take an extremely long time
 fi

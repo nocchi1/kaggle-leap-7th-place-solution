@@ -21,24 +21,25 @@ class HFDataLoader:
         os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
         self.repo_id = "LEAP/ClimSim_low-res"
         self.input_dir = input_dir
-        self.output_dir = input_dir / "additional"
+        self.add_dir = input_dir / "additional"
+        self.output_dir = self.add_dir
         self.output_dir.mkdir(exist_ok=True, parents=True)
         self.input_vars = VERTICAL_INPUT_COLS + SCALER_INPUT_COLS
         self.target_vars = VERTICAL_TARGET_COLS + SCALER_TARGET_COLS
         self.train_columns = self.get_column_name()
         self.dir_patterns = self.get_dir_patterns()
-        self.grid_info_path = Path("../data/input/additional/ClimSim_low-res_grid-info.nc")
-        self.grid_info = xr.open_dataset(self.grid_info_path)
+        self.grid_info = xr.open_dataset(self.add_dir / "ClimSim_low-res_grid-info.nc")
         self.input_feature_num = 558  # lat,lonを追加 + cam_in_SNOWHICEを除去
         self.target_feature_num = 368
         self.output_normalize = False
-        self.output_scale = xr.open_dataset(self.output_dir / "normalizations" / "output_scale.nc")
+        self.output_scale = xr.open_dataset(self.add_dir / "output_scale.nc")
 
     def download(self):
         error_pattern = []
         for pattern in tqdm(self.dir_patterns):
+            print(f"Downloading HF:{pattern}")
+            allow_patterns = f"train/{pattern}/*.nc"
             try:
-                allow_patterns = f"train/{pattern}/*.nc"
                 self.download_from_hf(allow_patterns=allow_patterns)
                 raw_files = list(self.output_dir.glob(f"train/{pattern}/E3SM-MMF.mli.*.nc"))
                 raw_files = sorted(raw_files, key=lambda x: x.name)
@@ -48,7 +49,7 @@ class HFDataLoader:
                 all_files = list(self.output_dir.glob(allow_patterns))
                 for file in all_files:
                     file.unlink()
-            except:
+            except Exception:
                 error_pattern.append(pattern)
         if len(error_pattern) > 0:
             pickle.dump(error_pattern, open(self.output_dir / "error_pattern.pkl", "wb"))
@@ -60,6 +61,8 @@ class HFDataLoader:
             cache_dir=None,
             local_dir=self.output_dir,
             repo_type="dataset",
+            force_download=True,
+            etag_timeout=3600,
         )
 
     def get_dataframe(self, generator):
@@ -141,7 +144,7 @@ class HFDataLoader:
         data_input = self.get_input(file_path)
         data_target = self.get_xrdata(file_path.with_name(file_path.name.replace(".mli.", ".mlo.")))
         data_target["ptend_t"] = (data_target["state_t"] - data_input["state_t"]) / 1200
-        data_target["ptend_q0001"] = (data_target["state_q0001"] - data_target["state_q0001"]) / 1200
+        data_target["ptend_q0001"] = (data_target["state_q0001"] - data_input["state_q0001"]) / 1200
         data_target["ptend_q0002"] = (data_target["state_q0002"] - data_input["state_q0002"]) / 1200
         data_target["ptend_q0003"] = (data_target["state_q0003"] - data_input["state_q0003"]) / 1200
         data_target["ptend_u"] = (data_target["state_u"] - data_input["state_u"]) / 1200
@@ -151,6 +154,6 @@ class HFDataLoader:
 
 
 if __name__ == "__main__":
-    input_dir = Path("../data/input/additional")
+    input_dir = Path("data/input")
     loader = HFDataLoader(input_dir)
     loader.download()
