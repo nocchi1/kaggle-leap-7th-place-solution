@@ -91,6 +91,8 @@ VERTICAL_INPUT_COLS = [
     "pbuf_ozone",
     "pbuf_CH4",
     "pbuf_N2O",
+]
+ADDITIONAL_INPUT_COLS = [
     # 追加した特徴量
     "state_ice_rate",
     "state_ice_rate_diff",

@@ -19,12 +19,13 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
 
 
-def convert_csv_to_parquet(file_path: PosixPath):
+def convert_csv_to_parquet(file_path: PosixPath, delete_csv: bool = False):
     parent_path = file_path.parent
     file_name = file_path.stem
     df = pl.read_csv(file_path)
     df.write_parquet(parent_path / f"{file_name}.parquet")
-    file_path.unlink()
+    if delete_csv:
+        file_path.unlink()
 
 
 def clean_message(message: str):

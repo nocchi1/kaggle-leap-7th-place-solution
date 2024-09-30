@@ -35,6 +35,11 @@ done
 curl -L -o data/input/additional/ClimSim_low-res_grid-info.nc https://github.com/leap-stc/ClimSim/raw/main/grid_info/ClimSim_low-res_grid-info.nc
 curl -L -o data/input/additional/output_scale.nc https://github.com/leap-stc/ClimSim/raw/main/preprocessing/normalizations/outputs/output_scale.nc
 
+# Download Shared Validation Data - This data is sampled at a 1/7 interval over the period from 0008-02 to 0009-01
+# It will result in an error if you aren't my teammate.
+kaggle datasets download ryotak12/leap-shared-validation -f 18.parquet -p data/input
+# python src/data/validation_pp.py
+
 # Download HF Additional Data
 if [ "$hf_download" = "true" ]; then
     python src/data/hf_download.py # This will take an extremely long time

@@ -1,5 +1,6 @@
 import os
 import pickle
+import shutil
 from pathlib import Path
 
 import huggingface_hub
@@ -46,9 +47,8 @@ class HFDataLoader:
                 generator = self.get_generator(raw_files)
                 df = self.get_dataframe(generator)
                 df.write_parquet(self.output_dir / f"{pattern}.parquet")
-                all_files = list(self.output_dir.glob(allow_patterns))
-                for file in all_files:
-                    file.unlink()
+                shutil.rmtree(self.output_dir / f"train/{pattern}")
+                shutil.rmtree(self.output_dir / f".cache/huggingface/download/train/{pattern}")
             except Exception:
                 error_pattern.append(pattern)
         if len(error_pattern) > 0:
