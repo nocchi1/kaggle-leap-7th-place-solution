@@ -1,4 +1,5 @@
 from pathlib import PosixPath
+from typing import Dict, List
 
 import polars as pl
 from omegaconf import DictConfig
@@ -15,18 +16,23 @@ from src.utils.constant import (
 )
 
 
-def shrink_memory(train_df: pl.DataFrame, test_df: pl.DataFrame, min_th: float = 1e-37) -> tuple[pl.DataFrame, pl.DataFrame]:
-    sample_id_expr = pl.col("sample_id").map_elements(lambda x: int(x.split("_")[1]), return_dtype=pl.Int32)
-    train_exprs, test_exprs = [sample_id_expr], [sample_id_expr]
-    for col in [col for col in train_df.columns if col != "sample_id"]:
-        abs_min_val = train_df[col].abs().min()
-        if abs_min_val > min_th: # Convert to FP32 only for values without the risk of underflow
-            train_exprs.append(pl.col(col).cast(pl.Float32))
-            if col in test_df.columns:
-                test_exprs.append(pl.col(col).cast(pl.Float32))
-    train_df = train_df.with_columns(train_exprs)
-    test_df = test_df.with_columns(test_exprs)
-    return train_df, test_df
+def shrink_memory(apply_df: pl.DataFrame, refer_df: pl.DataFrame | None = None, min_th: float = 1e-37) -> pl.DataFrame:
+    if "sample_id" in apply_df.columns and apply_df["sample_id"].dtype == pl.Utf8:
+        apply_df = apply_df.with_columns(sample_id=apply_df["sample_id"].map_elements(lambda x: int(x.split("_")[1]), return_dtype=pl.Int32))
+    num_cols = [col for col in apply_df.columns if apply_df[col].dtype == pl.Float64]
+    exprs = []
+    if refer_df is None:
+        for col in num_cols:
+            abs_min_val = apply_df[col].abs().min()
+            if abs_min_val > min_th:
+                exprs.append(pl.col(col).cast(pl.Float32))
+    else:
+        for col in num_cols:
+            if col in refer_df.columns:
+                dtype = refer_df[col].dtype
+                exprs.append(pl.col(col).cast(dtype))
+    apply_df = apply_df.with_columns(exprs)
+    return apply_df
 
 
 def get_sub_factor(input_path: PosixPath, old: bool = False) -> dict[str, float]:
@@ -53,7 +59,7 @@ def get_io_columns(config: DictConfig) -> tuple[list[str], list[str]]:
         input_cols.extend([f"{col}_{i}" for i in range(60)])
     for col in SCALER_INPUT_COLS:
         input_cols.append(col)
-    if config.task_type == 'main' and config.use_grid_feat:
+    if config.task_type == "main" and config.use_grid_feat:
         for col in GRID_SCALER_INPUT_COLS:
             input_cols.append(col)
 
@@ -65,3 +71,48 @@ def get_io_columns(config: DictConfig) -> tuple[list[str], list[str]]:
     # Remove columns where weight=0 and those applied with pp
     target_cols = [col for col in target_cols if col not in ZERO_WEIGHT_TARGET_COLS + PP_TARGET_COLS]
     return input_cols, target_cols
+
+
+def clipping_input(
+    train_df: pl.DataFrame | None,
+    test_df: pl.DataFrame,
+    input_cols: list[str],
+    clip_dict: dict[str, tuple[float, float]] | None = None,
+) -> pl.DataFrame:
+    if train_df is None and clip_dict is None:
+        raise ValueError("train_df or clip_dict is required.")
+
+    exprs = []
+    clip_dict_ = {} if clip_dict is None else clip_dict
+    for col in input_cols:
+        if train_df is not None:
+            min_val, max_val = train_df[col].min(), train_df[col].max()
+            clip_dict_[col] = (min_val, max_val)
+        else:
+            min_val, max_val = clip_dict[col]
+        exprs.append(pl.col(col).clip(min_val, max_val).alias(col))
+    test_df = test_df.with_columns(exprs)
+    return test_df, clip_dict_
+
+
+def remove_duplicate_records(target_df: pl.DataFrame, refer_df: pl.DataFrame) -> pl.DataFrame:
+    """
+    Function to detect and remove duplicate rows between DataFrames with different data types (e.g., Float32 - Float64)
+
+    args:
+        target_df: DataFrame in which duplicate rows will be removed, based on refer_df
+        refer_df: DataFrame used as a reference to check for duplicates
+    """
+    use_cols = [f"state_t_{i}" for i in range(60)] + [f"state_v_{i}" for i in range(60)] + [f"state_u_{i}" for i in range(60)]
+    # Convert to integers for duplicate detection
+    target_df = target_df.with_columns([(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols])
+    target_df = target_df.with_columns(target_flag=pl.lit(1))
+    refer_df = refer_df.with_columns([(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols])
+    refer_df = refer_df.with_columns(target_flag=pl.lit(0))
+
+    target_df = pl.concat([target_df, refer_df], how="diagonal")
+    use_int_cols = [f"{col}_int" for col in use_cols]
+    target_df = target_df.unique(subset=use_int_cols, keep="none")
+    target_df = target_df.filter(pl.col("target_flag") == 1)
+    target_df = target_df.drop(use_int_cols + ["target_flag"])
+    return target_df

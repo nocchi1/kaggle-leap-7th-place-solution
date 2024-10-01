@@ -5,7 +5,8 @@ import xarray as xr
 from omegaconf import DictConfig
 
 from src.data.validation import split_validation
-from src.utils import convert_csv_to_parquet, multiply_old_factor, shrink_memory
+from src.utils import convert_csv_to_parquet
+from src.utils.competition_utils import multiply_old_factor, shrink_memory
 
 
 class DataProvider:
@@ -25,7 +26,8 @@ class DataProvider:
 
             train_df = pl.read_parquet(self.config.input_path / "train.parquet")
             test_df = pl.read_parquet(self.config.input_path / "test.parquet")
-            train_df, test_df = shrink_memory(train_df, test_df)
+            train_df = shrink_memory(train_df, refer_df=None)
+            test_df = shrink_memory(test_df, refer_df=train_df)
             train_df.write_parquet(self.config.input_path / "train_shrinked.parquet")
             test_df.write_parquet(self.config.input_path / "test_shrinked.parquet")
             (self.config.input_path / "train.parquet").unlink()
@@ -34,13 +36,10 @@ class DataProvider:
             train_df = pl.read_parquet(self.config.input_path / "train_shrinked.parquet")
             test_df = pl.read_parquet(self.config.input_path / "test_shrinked.parquet")
 
-        train_df = train_df.with_columns(time_id=pl.col("sample_id") // 384)
+        train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64), time_id=pl.col("sample_id") // 384)
         train_df = self._downsample(train_df, self.config.run_mode)
-
         if self.config.task_type == "main" and self.config.use_grid_feat:
             train_df, test_df = self._merge_grid_feat(train_df, test_df)
-        if self.config.task_type == "grid_pred":
-            train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64))  # Target
 
         train_df = split_validation(self.config, train_df)
         if self.config.mul_old_factor:
@@ -56,10 +55,8 @@ class DataProvider:
         return train_df
 
     def _merge_grid_feat(self, train_df: pl.DataFrame, test_df: pl.DataFrame, use_cols: list[str] | None = ["lat", "lon"]):
-        train_grid_id = pl.read_parquet(self.config.input_path / "additional" / "train_grid_id.parquet")
-        train_df = train_df.join(train_grid_id, on="sample_id", how="left")
-
-        test_grid_id = pl.read_parquet(self.config.input_path / "additional" / "test_grid_id.parquet")
+        # Need to predict grid_id for test data
+        test_grid_id = pl.read_parquet(self.config.add_path / "test_grid_id.parquet")
         test_df = test_df.join(test_grid_id, on="sample_id", how="left")
 
         grid_feat = self._load_grid_feat(use_cols=use_cols)
@@ -68,11 +65,11 @@ class DataProvider:
         return train_df, test_df
 
     def _load_grid_feat(self, use_cols: list[str] | None = None):
-        feat_path = self.config.input_path / "additional" / "grid_feat.parquet"
+        feat_path = self.config.add_path / "grid_feat.parquet"
         if feat_path.exists():
             grid_feat = pl.read_parquet(feat_path)
         else:
-            grid_info_path = self.config.input_path / "additional" / "ClimSim_low-res_grid-info.nc"
+            grid_info_path = self.config.add_path / "ClimSim_low-res_grid-info.nc"
             grid_info = xr.open_dataset(grid_info_path)
             grid_info = pl.from_pandas(grid_info.to_dataframe().reset_index())
             grid_info = grid_info.rename({"ncol": "grid_id"})

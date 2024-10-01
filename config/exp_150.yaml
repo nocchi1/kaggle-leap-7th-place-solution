@@ -10,6 +10,7 @@ input_shape: '3dim'
 target_shape: '3dim'
 input_scale_method: 'standard'
 target_scale_method: 'standard_y2'
+multi_task: false
 
 model_type: 'transformer'
 in_dim: 86

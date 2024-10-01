@@ -8,11 +8,11 @@ from omegaconf import DictConfig
 
 class FeatureEngineering:
     def __init__(self, config: DictConfig):
-        hybi_path = config.input_path / "additional" / "hybi.npy"
+        hybi_path = config.add_path / "hybi.npy"
         if hybi_path.exists():
             self.hybi = np.load(hybi_path)
         else:
-            grid_info_path = config.input_path / "additional" / "ClimSim_low-res_grid-info.nc"
+            grid_info_path = config.add_path / "ClimSim_low-res_grid-info.nc"
             grid_info = xr.open_dataset(grid_info_path)
             grid_info = pl.from_pandas(grid_info.to_dataframe().reset_index())
             self.hybi = grid_info.unique(subset=['ilev', 'hybi'], maintain_order=True)['hybi'].to_numpy()

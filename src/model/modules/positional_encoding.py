@@ -38,7 +38,7 @@ class HorizontalEncoding(nn.Module):
         self.bn = nn.BatchNorm1d(hidden_dim)
 
     def load_grid_embedding(self):
-        grid_feat = pl.read_parquet(self.input_path / "additional" / "grid_feat.parquet")
+        grid_feat = pl.read_parquet(self.add_path / "grid_feat.parquet")
         lat_lon = grid_feat.sort("grid_id").select("lat", "lon").to_numpy()
         lat_lon = np.radians(lat_lon)
         distance = haversine_distances(lat_lon)

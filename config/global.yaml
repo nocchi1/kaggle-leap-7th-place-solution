@@ -2,5 +2,6 @@ device: "cuda"
 seed: 10
 
 input_path: ${path:"../data/input"}
+add_path: ${path:"../data/input/additional"}
 output_path: ${path:"../data/output"}
 oof_path: ${path:"../data/oof"}

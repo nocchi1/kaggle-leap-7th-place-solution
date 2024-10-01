@@ -25,6 +25,7 @@ class HFDataLoader:
         self.add_dir = input_dir / "additional"
         self.output_dir = self.add_dir
         self.output_dir.mkdir(exist_ok=True, parents=True)
+        (self.output_dir / "huggingface").mkdir(exist_ok=True, parents=True)
         self.input_vars = VERTICAL_INPUT_COLS + SCALER_INPUT_COLS
         self.target_vars = VERTICAL_TARGET_COLS + SCALER_TARGET_COLS
         self.train_columns = self.get_column_name()
@@ -46,13 +47,15 @@ class HFDataLoader:
                 raw_files = sorted(raw_files, key=lambda x: x.name)
                 generator = self.get_generator(raw_files)
                 df = self.get_dataframe(generator)
-                df.write_parquet(self.output_dir / f"{pattern}.parquet")
+                df.write_parquet(self.output_dir / "huggingface" / f"{pattern}.parquet")
                 shutil.rmtree(self.output_dir / f"train/{pattern}")
                 shutil.rmtree(self.output_dir / f".cache/huggingface/download/train/{pattern}")
             except Exception:
                 error_pattern.append(pattern)
         if len(error_pattern) > 0:
             pickle.dump(error_pattern, open(self.output_dir / "error_pattern.pkl", "wb"))
+        shutil.rmtree(self.output_dir / "train")
+        shutil.rmtree(self.output_dir / ".cache")
 
     def download_from_hf(self, allow_patterns: str):
         huggingface_hub.snapshot_download(
