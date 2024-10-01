@@ -1,7 +1,12 @@
+import gc
+import pickle
+
+import numpy as np
+import polars as pl
 from tqdm.auto import tqdm
 
-from src.data.validation import split_validation
-from src.utils import convert_csv_to_parquet, multiply_old_factor, shrink_memory
+from src.data import FeatureEngineering, Preprocessor
+from src.utils.competition_utils import clipping_input, get_io_columns, multiply_old_factor, shrink_memory
 
 
 class HFPreprocessor:
@@ -14,7 +19,7 @@ class HFPreprocessor:
         self.ppr = Preprocessor(config)
         self.input_clip_dict = pickle.load(open(self.config.output_path / "input_clip_dict.pkl", "rb"))
 
-        # shared_validをサンプリングしているyear-month
+        # Year-months used for shared_valid
         self.valid_ym = ["0008-07", "0008-08", "0008-09", "0008-10", "0008-11", "0008-12", "0009-01"]
 
     def shrink_file_size(self):
@@ -23,10 +28,10 @@ class HFPreprocessor:
             refer_df = pl.read_parquet(self.config.input_path / "train_shrinked.parquet", n_rows=100)
             for file in tqdm(self.hf_files):
                 df = pl.read_parquet(file)
-                df = self.shrink_memory(df, refer_df)
-                df.write_parquet(self.input_path / "huggingface" / f"{file.stem}_shrinked.parquet")
+                df = shrink_memory(df, refer_df)
+                df.write_parquet(self.config.add_path / "huggingface" / f"{file.stem}_shrinked.parquet")
                 file.unlink()
-            self.hf_files = list((self.input_path / "huggingface").glob("*.parquet"))
+            self.hf_files = list((self.config.add_path / "huggingface").glob("*.parquet"))
 
     def convert_numpy_array(self, unlink_parquet: bool = True):
         npy_path = self.config.add_path / "huggingface" / "npy"
@@ -36,11 +41,12 @@ class HFPreprocessor:
             ym = file.stem.replace("_shrinked", "")
             if (npy_path / "X_{ym}.npy").exists():
                 continue
-            # valid_ym以降のymは使用しない
+            # Don't use ym after valid_ym
             if ym in self.valid_ym:
                 continue
 
             df = pl.read_parquet(file)
+            df = df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64), time_id=pl.col("sample_id") // 384)
             if self.config.mul_old_factor:
                 df = multiply_old_factor(self.config.input_path, df)
 
