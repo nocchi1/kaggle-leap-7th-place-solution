@@ -44,7 +44,7 @@ class DataProvider:
 
         train_df = split_validation(self.config, train_df)
         if self.config.mul_old_factor:
-            train_df = multiply_old_factor(train_df, self.config.input_path)
+            train_df = multiply_old_factor(self.config.input_path, train_df)
         train_df = train_df.drop(["time_id"])
         return train_df, test_df
 

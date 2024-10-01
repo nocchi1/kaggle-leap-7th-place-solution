@@ -1,4 +1,3 @@
-# weightが0のターゲットカラム
 ZERO_WEIGHT_TARGET_COLS = [
     "ptend_q0001_0",
     "ptend_q0001_1",
@@ -61,7 +60,6 @@ ZERO_WEIGHT_TARGET_COLS = [
     "ptend_v_10",
     "ptend_v_11",
 ]
-# 後処理を適用するターゲットカラム
 PP_TARGET_COLS = [
     "ptend_q0002_12",
     "ptend_q0002_13",
@@ -80,7 +78,6 @@ PP_TARGET_COLS = [
     "ptend_q0002_26",
     # 'ptend_q0002_27',
 ]
-# 垂直方向に次元をもつ入力特徴量
 VERTICAL_INPUT_COLS = [
     "state_t",
     "state_q0001",
@@ -92,15 +89,13 @@ VERTICAL_INPUT_COLS = [
     "pbuf_CH4",
     "pbuf_N2O",
 ]
-ADDITIONAL_INPUT_COLS = [
-    # 追加した特徴量
+ADDITIONAL_VERTICAL_INPUT_COLS = [
     "state_ice_rate",
     "state_ice_rate_diff",
     "state_dp",
     "state_rh",
     "state_vp",
 ]
-# サンプルごとに単一の値をもつ入力特徴量
 SCALER_INPUT_COLS = [
     "state_ps",
     "pbuf_SOLIN",
@@ -119,7 +114,13 @@ SCALER_INPUT_COLS = [
     "cam_in_OCNFRAC",
     "cam_in_SNOWHLAND",
 ]
-# 垂直方向に次元をもつターゲット
+# grid_idに紐づく特徴量 -> 使用しない
+GRID_SCALER_INPUT_COLS = [
+    "lat_sin",
+    "lat_cos",
+    "lon_sin",
+    "lon_cos",
+]
 VERTICAL_TARGET_COLS = [
     "ptend_t",
     "ptend_q0001",
@@ -128,10 +129,17 @@ VERTICAL_TARGET_COLS = [
     "ptend_u",
     "ptend_v",
 ]
-# サンプルごとに単一の値をもつターゲット
-SCALER_TARGET_COLS = ["cam_out_NETSW", "cam_out_FLWDS", "cam_out_PRECSC", "cam_out_PRECC", "cam_out_SOLS", "cam_out_SOLL", "cam_out_SOLSD", "cam_out_SOLLD"]
+SCALER_TARGET_COLS = [
+    "cam_out_NETSW",
+    "cam_out_FLWDS",
+    "cam_out_PRECSC",
+    "cam_out_PRECC",
+    "cam_out_SOLS",
+    "cam_out_SOLL",
+    "cam_out_SOLSD",
+    "cam_out_SOLLD"
+]
 
-# old_sub_factorをかけた後のmin,max -> clippingに使用
 TARGET_MIN_MAX = {
     "ptend_t_0": [-62.895582026739646, 245.9913771015123],
     "ptend_t_1": [-85.19733458669685, 485.2134138330683],

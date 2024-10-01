@@ -2,16 +2,23 @@ from pathlib import PosixPath
 
 import numpy as np
 import polars as pl
+import xarray as xr
+from omegaconf import DictConfig
 
 
-class FeatureCreator:
-    def __init__(self, hybi_path: PosixPath, use_latlon: bool = False):
+class FeatureEngineering:
+    def __init__(self, config: DictConfig):
+        hybi_path = config.input_path / "additional" / "hybi.npy"
         if hybi_path.exists():
             self.hybi = np.load(hybi_path)
         else:
-            # ここでhybiを再現する
-            pass
-        self.use_latlon = use_latlon
+            grid_info_path = config.input_path / "additional" / "ClimSim_low-res_grid-info.nc"
+            grid_info = xr.open_dataset(grid_info_path)
+            grid_info = pl.from_pandas(grid_info.to_dataframe().reset_index())
+            self.hybi = grid_info.unique(subset=['ilev', 'hybi'], maintain_order=True)['hybi'].to_numpy()
+            np.save(hybi_path, self.hybi)
+
+        self.use_latlon = config.use_grid_feat
 
     def feature_engineering(self, df: pl.DataFrame) -> pl.DataFrame:
         if self.use_latlon:
