@@ -1,0 +1,44 @@
+exp: '148'
+run_mode: 'hf'  # hf, full, dev, debug
+task_type: 'main'
+mul_old_factor: true
+
+shared_valid: true
+valid_ratio: 0.20
+input_shape: '3dim'
+target_shape: '3dim'
+input_scale_method: 'standard'
+target_scale_method: 'standard_y2'
+
+model_type: 'conv1d'
+in_dim: 86
+out_dim: 14
+hidden_dim: 256
+scaler_num: 16
+block_num: 15
+kernel_size: 5
+
+loss_type: 'mse'
+train_batch: 1024
+eval_batch: 4096
+epochs: 75
+eval_step:
+  hf: 4000
+  full: 4000
+  dev: 2000
+  debug: 20
+out_clip: true
+
+optimizer_method: 'adamw'
+lr: 5e-4
+weight_decay: 0.01
+betas:
+  - 0.9
+  - 0.999
+
+scheduler_method: 'cosine'
+cosine_t0_epoch: 75
+cosine_t_mult: 1
+cosine_min_lr: 5e-6
+cosine_warmup_steps: 200
+cosine_gamma: 1.0
