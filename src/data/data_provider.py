@@ -4,6 +4,7 @@ import polars as pl
 import xarray as xr
 from omegaconf import DictConfig
 
+from src.data.validation import split_validation
 from src.utils import convert_csv_to_parquet, multiply_old_factor, shrink_memory
 
 
@@ -36,13 +37,13 @@ class DataProvider:
         train_df = train_df.with_columns(time_id=pl.col("sample_id") // 384)
         train_df = self._downsample(train_df, self.config.run_mode)
 
-        if self.task_type == "main" and self.config.use_grid_info:
-            train_df, test_df = self._merge_grid_info(train_df, test_df)
-        if self.task_type == "grid_pred":
-            train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64))
+        if self.config.task_type == "main" and self.config.use_grid_feat:
+            train_df, test_df = self._merge_grid_feat(train_df, test_df)
+        if self.config.task_type == "grid_pred":
+            train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64))  # Target
 
-        train_df = self.split_validation(self.config, train_df)
-        if self.mul_old_factor:
+        train_df = split_validation(self.config, train_df)
+        if self.config.mul_old_factor:
             train_df = multiply_old_factor(train_df, self.config.input_path)
         train_df = train_df.drop(["time_id"])
         return train_df, test_df
@@ -54,20 +55,19 @@ class DataProvider:
         train_df = train_df.filter(pl.col("time_id").is_in(use_ids))
         return train_df
 
-    def _merge_grid_info(self, train_df: pl.DataFrame, test_df: pl.DataFrame):
-        train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64))
-        test_grid_path = self.config.input_path / "additional" / "test_grid_id.parquet"
-        if test_grid_path.exists():
-            test_grid_id = pl.read_parquet(test_grid_path)
-        else:
-            raise FileNotFoundError(f"{test_grid_path} is not found. You need to predict the test grid.")
+    def _merge_grid_feat(self, train_df: pl.DataFrame, test_df: pl.DataFrame, use_cols: list[str] | None = ["lat", "lon"]):
+        train_grid_id = pl.read_parquet(self.config.input_path / "additional" / "train_grid_id.parquet")
+        train_df = train_df.join(train_grid_id, on="sample_id", how="left")
+
+        test_grid_id = pl.read_parquet(self.config.input_path / "additional" / "test_grid_id.parquet")
         test_df = test_df.join(test_grid_id, on="sample_id", how="left")
-        grid_feat = self._load_grid_info(use_cols=["lat", "lon"])
+
+        grid_feat = self._load_grid_feat(use_cols=use_cols)
         train_df = train_df.join(grid_feat, on=["grid_id"], how="left")
         test_df = test_df.join(grid_feat, on=["grid_id"], how="left")
         return train_df, test_df
 
-    def _load_grid_info(self, use_cols: list[str] | None = None):
+    def _load_grid_feat(self, use_cols: list[str] | None = None):
         feat_path = self.config.input_path / "additional" / "grid_feat.parquet"
         if feat_path.exists():
             grid_feat = pl.read_parquet(feat_path)

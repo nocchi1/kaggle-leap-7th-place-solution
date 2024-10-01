@@ -1,8 +1,9 @@
 exp: '150'
 run_mode: 'hf'  # hf, full, dev, debug
 task_type: 'main'
-mul_old_factor: true
 
+mul_old_factor: true
+use_grid_feat: false
 shared_valid: true
 valid_ratio: 0.20
 input_shape: '3dim'

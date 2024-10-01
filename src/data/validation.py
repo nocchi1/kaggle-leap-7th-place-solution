@@ -8,10 +8,10 @@ from omegaconf import DictConfig
 
 def split_validation(config: DictConfig, train_df: pl.DataFrame) -> pl.DataFrame:
     if config.task_type == "main":
-        train_df = split_holdout(train_df, valid_ratio=config.valid_ratio)
+        split_method = "shared" if config.shared_valid else "timeseries"
+        train_df = split_holdout(train_df, split_method=split_method, valid_ratio=config.valid_ratio, valid_dir=config.input_path)
     elif config.task_type == "grid_pred":
         train_df = split_cross_validation(train_df, n_splits=config.n_splits)
-        raise ValueError(f"Invalid task_type: {config.task_type}")
     return train_df
 
 
@@ -22,15 +22,13 @@ def split_holdout(
     valid_dir: PosixPath | None = None,
 ):
     if split_method == "random":
-        train_df = train_df.with_columns(rand_tmp=pl.Series(np.random.rand(len(train_df))))
-        train_df = train_df.with_columns(fold=pl.when(pl.col("rand_tmp") < valid_ratio).then(0).otherwise(1))
-        train_df = train_df.drop("rand_tmp")
+        train_df = train_df.with_columns(fold=pl.when(pl.Series(np.random.rand(len(train_df))) < valid_ratio).then(0).otherwise(1))
     elif split_method == "timeseries":
         time_ids = sorted(train_df["time_id"].unique())
         valid_start = int(len(time_ids) * (1 - valid_ratio))
         valid_ids = time_ids[valid_start:]
         train_df = train_df.with_columns(fold=(pl.when(pl.col("time_id").is_in(valid_ids)).then(pl.lit(0)).otherwise(pl.lit(1)).cast(pl.Int8)))
-    elif split_method == "shared":  # Use valid_df shared within the team
+    elif split_method == "shared":  # Use valid_df shared within the team #TODO:ここの挙動をテストする
         valid_path = valid_dir / "18_pp.parquet"
         if valid_path.exists():
             valid_df = pl.read_parquet(valid_path)
