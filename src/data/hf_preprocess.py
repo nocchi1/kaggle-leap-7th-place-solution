@@ -6,7 +6,8 @@ import numpy as np
 import polars as pl
 from tqdm.auto import tqdm
 
-from src.data import FeatureEngineering, Preprocessor
+from src.data.feature_engineering import FeatureEngineering
+from src.data.preprocess import Preprocessor
 from src.utils.competition_utils import clipping_input, get_io_columns, multiply_old_factor, shrink_memory
 
 
