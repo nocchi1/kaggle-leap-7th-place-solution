@@ -1,6 +1,7 @@
 import gc
 import pickle
 
+import h5py
 import numpy as np
 import polars as pl
 from tqdm.auto import tqdm
@@ -33,20 +34,18 @@ class HFPreprocessor:
                 file.unlink()
             self.hf_files = list((self.config.add_path / "huggingface").glob("*.parquet"))
 
-    def convert_numpy_array(self, unlink_parquet: bool = True):
-        npy_path = self.config.add_path / "huggingface" / "npy"
-        npy_path.mkdir(exist_ok=True, parents=True)
+    def convert_hdf5_array(self, unlink_parquet: bool = True):
+        output_path = self.config.add_path / "huggingface"
+
         self.hf_files = sorted(self.hf_files, key=lambda x: x.stem)
-        for file in tqdm(self.hf_files):
+        for i, file in enumerate(tqdm(self.hf_files)):
             ym = file.stem.replace("_shrinked", "")
-            if (npy_path / "X_{ym}.npy").exists():
-                continue
             # Don't use ym after valid_ym
             if ym in self.valid_ym:
                 continue
 
             df = pl.read_parquet(file)
-            df = df.with_columns(grid_id=(pl.col("sample_id") % 384).cast(pl.Int64), time_id=pl.col("sample_id") // 384)
+            df = df.with_columns(grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384)
             if self.config.mul_old_factor:
                 df = multiply_old_factor(self.config.input_path, df)
 
@@ -57,12 +56,23 @@ class HFPreprocessor:
 
             df, _ = clipping_input(None, df, self.input_cols, self.input_clip_dict)
             if self.config.multi_task:
-                df = self.ppr._get_forward_and_back_target(df)
+                df = self.ppr._get_forward_and_back_target(df, shift_steps=7)
 
             X_train = self.ppr._convert_input_array(df, self.config.input_shape)
             y_train = self.ppr._convert_target_array(df, self.config.target_shape)
-            np.save(npy_path / f"X_{ym}.npy", X_train)
-            np.save(npy_path / f"y_{ym}.npy", y_train)
+
+            if i == 0:
+                with h5py.File(output_path / "hf_data.h5", "w") as f:
+                    f.create_dataset("X", data=X_train, maxshape=(None, *X_train.shape[1:]), chunks=True)
+                    f.create_dataset("y", data=y_train, maxshape=(None, *y_train.shape[1:]), chunks=True)
+            else:
+                with h5py.File(output_path / "hf_data.h5", "a") as f:
+                    f["X"].resize((f["X"].shape[0] + X_train.shape[0]), axis=0)
+                    f["X"][-X_train.shape[0] :] = X_train
+                    f["y"].resize((f["y"].shape[0] + y_train.shape[0]), axis=0)
+                    f["y"][-y_train.shape[0] :] = y_train
+            del X_train, y_train
+            gc.collect()
 
             if self.config.multi_task:
                 y_train_mt = np.concatenate(
@@ -72,11 +82,15 @@ class HFPreprocessor:
                     ],
                     axis=-1,
                 )
-                np.save(npy_path / f"y_mt_{ym}.npy", y_train_mt)
+                if i == 0:
+                    with h5py.File(output_path / "hf_data.h5", "a") as f:
+                        f.create_dataset("y_mt", data=y_train_mt, maxshape=(None, *y_train_mt.shape[1:]), chunks=True)
+                else:
+                    with h5py.File(output_path / "hf_data.h5", "a") as f:
+                        f["y_mt"].resize((f["y_mt"].shape[0] + y_train_mt.shape[0]), axis=0)
+                        f["y_mt"][-y_train_mt.shape[0] :] = y_train_mt
                 del y_train_mt
                 gc.collect()
 
-            del df, X_train, y_train
-            gc.collect()
             if unlink_parquet:
                 file.unlink()

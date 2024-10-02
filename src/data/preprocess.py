@@ -191,13 +191,13 @@ class Preprocessor:
             y_array = np.stack(y_array, axis=-1)
         return y_array
 
-    def _get_forward_and_back_target(self, df: pl.DataFrame):
+    def _get_forward_and_back_target(self, df: pl.DataFrame, shift_steps: int = 1) -> pl.DataFrame:
         target_cols = list(itertools.chain(*[[f"{col}_{i}" for i in range(60)] for col in VERTICAL_TARGET_COLS]))
         target_cols += SCALER_TARGET_COLS
         df = df.sort("sample_id")
         df = df.with_columns(
-            [pl.col(col).shift(1).over("grid_id").alias(f"{col}_lag") for col in target_cols]
-            + [pl.col(col).shift(-1).over("grid_id").alias(f"{col}_lead") for col in target_cols]
+            [pl.col(col).shift(shift_steps).over("grid_id").alias(f"{col}_lag") for col in target_cols]
+            + [pl.col(col).shift(-shift_steps).over("grid_id").alias(f"{col}_lead") for col in target_cols]
         )
         df = df.filter(pl.all_horizontal(pl.col("*").is_not_null()))
         return df
