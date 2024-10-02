@@ -1,9 +1,9 @@
 # Frequently Used Commands
 
-- [Kaggle API Documentation](https://github.com/Kaggle/kaggle-api/blob/main/docs/README.md)
+[Kaggle API Documentation](https://github.com/Kaggle/kaggle-api/blob/main/docs/README.md)
 
 ```bash
-# Download Competition Datasets -> 必要なデータを全てダウンロードする場合はdownload.shを実行する
+# Download Competition Datasets -> Run download.sh to download all necessary data
 kaggle competitions download leap-atmospheric-physics-ai-climsim -p data_path
 
 # Submit to Competition
