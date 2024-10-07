@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Install rye and 
+# Install rye and
 curl -sSf https://rye.astral.sh/get | bash
 source ~/.profile
 
