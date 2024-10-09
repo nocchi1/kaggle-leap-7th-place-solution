@@ -16,10 +16,10 @@ class LEAPTransformer(BaseModel):
         trans_num_layers: int = 4,
         lstm_block_num: int = 2,
         scaler_num: int = 16,
-        multitask: bool = False,
+        multi_task: bool = False,
     ):
         super().__init__()
-        if multitask:
+        if multi_task:
             out_dim = out_dim * 3
 
         self.scaler_num = scaler_num

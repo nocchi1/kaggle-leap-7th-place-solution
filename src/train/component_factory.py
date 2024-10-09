@@ -1,109 +1,111 @@
 from omegaconf import DictConfig
 from torch import nn
+from torch.optim.optimizer import Optimizer
 
-from model.models.conv1d import LEAPConv1D
-from model.models.lstm import LEAPLSTM
-from model.models.transformer import LEAPTransformer
+from src.model.models.conv1d import LEAPConv1D
+from src.model.models.lstm import LEAPLSTM
+from src.model.models.transformer import LEAPTransformer
 from src.train.optimizer import get_optimizer
 from src.train.scheduler import get_scheduler
 
 
 class ComponentFactory:
-    def __init__(self, config: DictConfig):
-        self.config = config
-
-    def get_model(self):
-        if self.config.task_type == "main":
-            if self.config.model_type == "conv1d":
+    @staticmethod
+    def get_model(config: DictConfig):
+        if config.task_type == "main":
+            if config.model_type == "conv1d":
                 model = LEAPConv1D(
-                    in_dim=self.config.in_dim,
-                    out_dim=self.config.out_dim,
-                    hidden_dim=self.config.hidden_dim,
-                    block_num=self.config.block_num,
-                    kernel_size=self.config.kernel_size,
-                    multitask=self.config.multi_task,
+                    in_dim=config.in_dim,
+                    out_dim=config.out_dim,
+                    hidden_dim=config.hidden_dim,
+                    block_num=config.block_num,
+                    kernel_size=config.kernel_size,
+                    multi_task=config.multi_task,
                 )
-            elif self.config.model_type == "lstm":
+            elif config.model_type == "lstm":
                 model = LEAPLSTM(
-                    in_dim=self.config.in_dim,
-                    out_dim=self.config.out_dim,
-                    hidden_dim=self.config.hidden_dim,
-                    block_num=self.config.block_num,
-                    scaler_num=self.config.scaler_num,
-                    multitask=self.config.multi_task,
+                    in_dim=config.in_dim,
+                    out_dim=config.out_dim,
+                    hidden_dim=config.hidden_dim,
+                    block_num=config.block_num,
+                    scaler_num=config.scaler_num,
+                    multi_task=config.multi_task,
                 )
-            elif self.config.model_type == "transformer":
+            elif config.model_type == "transformer":
                 model = LEAPTransformer(
-                    in_dim=self.config.in_dim,
-                    out_dim=self.config.out_dim,
-                    hidden_dim=self.config.hidden_dim,
-                    trans_num_layers=self.config.trans_num_layers,
-                    lstm_block_num=self.config.lstm_block_num,
-                    scaler_num=self.config.scaler_num,
-                    multitask=self.config.multi_task,
+                    in_dim=config.in_dim,
+                    out_dim=config.out_dim,
+                    hidden_dim=config.hidden_dim,
+                    trans_num_layers=config.trans_num_layers,
+                    lstm_block_num=config.lstm_block_num,
+                    scaler_num=config.scaler_num,
+                    multi_task=config.multi_task,
                 )
-        elif self.config.task_type == "grid_pred":
+        elif config.task_type == "grid_pred":
             pass
         return model
 
-    def get_loss(self):
-        if self.config.task_type == "main":
-            if self.config.loss_type == "mse":
+    @staticmethod
+    def get_loss(config: DictConfig):
+        if config.task_type == "main":
+            if config.loss_type == "mse":
                 loss_fn = nn.MSELoss()
-            elif self.config.loss_type == "mae":
+            elif config.loss_type == "mae":
                 loss_fn = nn.L1Loss()
-            elif self.config.loss_type == "huber":
+            elif config.loss_type == "huber":
                 loss_fn = nn.HuberLoss()
-            elif self.config.loss_type == "inverse_huber":
+            elif config.loss_type == "inverse_huber":
                 # loss_fn = InverseHuberLoss()  # [TODO]これを再考したい
                 pass
-        elif self.config.task_type == "grid_pred":
+        elif config.task_type == "grid_pred":
             loss_fn = nn.CrossEntropyLoss()
         return loss_fn
 
-    def get_optimizer(self):
+    @staticmethod
+    def get_optimizer(config: DictConfig, model):
         optimizer = get_optimizer(
-            self.model,
-            optimizer_type=self.config.optimizer_type,
-            lr=self.config.lr,
-            weight_decay=self.config.weight_decay,
-            betas=self.config.betas,
+            model,
+            optimizer_type=config.optimizer_type,
+            lr=config.lr,
+            weight_decay=config.weight_decay,
+            betas=config.betas,
         )
         return optimizer
 
-    def get_scheduler(self, steps_per_epoch):
-        total_steps = self.config.epochs * steps_per_epoch
-        if self.config.scheduler_type == "linear":
+    @staticmethod
+    def get_scheduler(config: DictConfig, optimizer: Optimizer, steps_per_epoch: int):
+        total_steps = config.epochs * steps_per_epoch
+        if config.scheduler_type == "linear":
             scheduler_args = {
-                "num_warmup_steps": self.config.num_warmup_steps,
+                "num_warmup_steps": config.num_warmup_steps,
                 "num_training_steps": total_steps,
             }
-        elif self.config.scheduler_type == "cosine":
+        elif config.scheduler_type == "cosine":
             scheduler_args = {
-                "num_warmup_steps": self.config.num_warmup_steps,
+                "num_warmup_steps": config.num_warmup_steps,
                 "num_training_steps": total_steps,
-                "num_cycles": self.config.num_cycles,
+                "num_cycles": config.num_cycles,
             }
-        elif self.config.scheduler_type == "cosine_custom":
-            first_cycle_steps = self.config.first_cycle_epochs * steps_per_epoch
+        elif config.scheduler_type == "cosine_custom":
+            first_cycle_steps = config.first_cycle_epochs * steps_per_epoch
             scheduler_args = {
                 "first_cycle_steps": first_cycle_steps,
-                "cycle_factor": self.config.cycle_factor,
-                "num_warmup_steps": self.config.num_warmup_steps,
-                "min_lr": self.config.min_lr,
-                "gamma": self.config.gamma,
+                "cycle_factor": config.cycle_factor,
+                "num_warmup_steps": config.num_warmup_steps,
+                "min_lr": config.min_lr,
+                "gamma": config.gamma,
             }
-        elif self.config.scheduler_type == "reduce_on_plateau":
+        elif config.scheduler_type == "reduce_on_plateau":
             scheduler_args = {
-                "mode": self.config.mode,
-                "factor": self.config.factor,
-                "patience": self.config.patience,
-                "min_lr": self.config.min_lr,
+                "mode": config.mode,
+                "factor": config.factor,
+                "patience": config.patience,
+                "min_lr": config.min_lr,
             }
         else:
-            raise ValueError(f"Invalid scheduler_type: {self.config.scheduler_type}")
+            raise ValueError(f"Invalid scheduler_type: {config.scheduler_type}")
 
         scheduler = get_scheduler(
-            self.optimizer, scheduler_type=self.config.scheduler_type, scheduler_args=scheduler_args
+            optimizer, scheduler_type=config.scheduler_type, scheduler_args=scheduler_args
         )
         return scheduler

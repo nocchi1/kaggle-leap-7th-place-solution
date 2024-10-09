@@ -12,7 +12,7 @@ input_scale_method: 'standard'
 target_scale_method: 'standard_y2'
 multi_task: false
 
-model_type: 'conv1d'
+model_type: 'lstm'
 in_dim: 86
 out_dim: 14
 hidden_dim: 256

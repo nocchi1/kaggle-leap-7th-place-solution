@@ -13,10 +13,10 @@ class LEAPConv1D(BaseModel):
         hidden_dim: int = 256,
         block_num: int = 15,
         kernel_size: int = 5,
-        multitask: bool = False,
+        multi_task: bool = False,
     ):
         super().__init__()
-        if multitask:
+        if multi_task:
             out_dim = out_dim * 3
 
         activation = nn.ELU()

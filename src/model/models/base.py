@@ -2,11 +2,13 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from src.utils.constant import ADDITIONAL_VERTICAL_INPUT_COLS, VERTICAL_INPUT_COLS
+
 
 class BaseModel(nn.Module):
-    def __init__(self, n_vertical: int):
+    def __init__(self):
         super().__init__()
-        self.n_vertical = n_vertical
+        self.n_vertical = len(VERTICAL_INPUT_COLS) + len(ADDITIONAL_VERTICAL_INPUT_COLS)
 
     def forward(self, x):
         v_x = x[:, :, : self.n_vertical]
