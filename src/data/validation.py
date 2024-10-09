@@ -42,7 +42,7 @@ def split_holdout(
             )
         )
     elif split_method == "shared":  # Use valid_df shared within the team
-        valid_path = valid_dir / "18_pp.parquet"
+        valid_path = valid_dir / "18_shrinked.parquet"
         if valid_path.exists():
             valid_df = pl.read_parquet(valid_path)
         else:
@@ -53,7 +53,7 @@ def split_holdout(
                 if col in valid_df.columns:
                     exprs.append(pl.col(col).cast(train_df[col].dtype))
             valid_df = valid_df.with_columns(exprs)
-            valid_df.write_parquet(valid_dir / "18_pp.parquet")
+            valid_df.write_parquet(valid_dir / "18_shrinked.parquet")
 
         valid_df = valid_df.with_columns(fold=pl.lit(0).cast(pl.Int8))
         train_df = train_df.with_columns(fold=pl.lit(1).cast(pl.Int8))

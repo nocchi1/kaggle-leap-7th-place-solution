@@ -232,29 +232,6 @@ class Trainer:
         self.logger.info(clean_message(message))
         return score, colwise_score, preds
 
-    def test_predict(self, test_loader: DataLoader, eval_colwise: bool = False) -> pl.DataFrame:
-        if self.test_ids is None:
-            self.test_ids = test_loader.dataset.sample_ids
-
-        if eval_colwise:
-            self.best_score_dict = pickle.load(
-                open(self.output_path / f"best_score_dict{self.save_suffix}.pkl", "rb")
-            )
-            preds = self.inference_loop_colwise(test_loader, "test", self.best_score_dict)
-        else:
-            preds = self.inference_loop(test_loader, "test", load_best_weight=True)
-
-        if self.pp_run and self.test_pp_x is None:
-            self.load_input_for_postprocess("test")
-        if self.pp_run:
-            preds = self.postprocess(preds, run_type="test")
-        if self.out_clip:
-            preds = self.clipping_pred(preds)
-
-        pred_df = pl.DataFrame(preds, schema=self.target_cols)
-        pred_df = pred_df.with_columns(sample_id=pl.Series(self.test_ids))
-        return pred_df
-
     def forward_step(self, batched: torch.Tensor, calc_loss: bool = True):
         if calc_loss:
             x, y = batched
