@@ -1,8 +1,10 @@
 from pathlib import PosixPath
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+import numpy as np
 import polars as pl
 from omegaconf import DictConfig
+from sklearn.metrics import r2_score
 
 from src.utils.constant import (
     ADDITIONAL_VERTICAL_INPUT_COLS,
@@ -133,3 +135,26 @@ def remove_duplicate_records(target_df: pl.DataFrame, refer_df: pl.DataFrame) ->
     target_df = target_df.filter(pl.col("target_flag") == 1)
     target_df = target_df.drop(use_int_cols + ["target_flag"])
     return target_df
+
+
+def evaluate_metric(
+    y_pred: np.ndarray, y_true: np.ndarray, eval_idx: list[int] | None = None
+) -> float | tuple[float, list[float]]:
+    target_num = 368
+    total_score = 0
+    indiv_scores = []
+
+    for i in range(y_pred.shape[1]):
+        if i not in eval_idx:
+            total_score += 1
+            indiv_scores.append(1)
+        else:
+            score = r2_score(y_true[:, i], y_pred[:, i], force_finite=True)
+            total_score += score
+            indiv_scores.append(score)
+
+    eval_num = len(indiv_scores)
+    # y_pred内に存在しないカラムは1として計算する -> sub_factorが0のカラム, 後処理を適用するカラム
+    if target_num - eval_num > 0:
+        total_score = (total_score * eval_num + (target_num - eval_num)) / target_num
+    return total_score, indiv_scores

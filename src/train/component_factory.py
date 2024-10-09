@@ -5,6 +5,7 @@ from torch.optim.optimizer import Optimizer
 from src.model.models.conv1d import LEAPConv1D
 from src.model.models.lstm import LEAPLSTM
 from src.model.models.transformer import LEAPTransformer
+from src.train.loss import LEAPLoss
 from src.train.optimizer import get_optimizer
 from src.train.scheduler import get_scheduler
 
@@ -48,15 +49,7 @@ class ComponentFactory:
     @staticmethod
     def get_loss(config: DictConfig):
         if config.task_type == "main":
-            if config.loss_type == "mse":
-                loss_fn = nn.MSELoss()
-            elif config.loss_type == "mae":
-                loss_fn = nn.L1Loss()
-            elif config.loss_type == "huber":
-                loss_fn = nn.HuberLoss()
-            elif config.loss_type == "inverse_huber":
-                # loss_fn = InverseHuberLoss()  # [TODO]これを再考したい
-                pass
+            loss_fn = LEAPLoss(config)
         elif config.task_type == "grid_pred":
             loss_fn = nn.CrossEntropyLoss()
         return loss_fn
