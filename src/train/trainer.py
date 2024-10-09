@@ -28,7 +28,7 @@ class Trainer:
         self.config = config
         self.logger = logger
         self.save_suffix = save_suffix
-        self.detail_bar = True
+        self.detail_pbar = True
 
         self.model = ComponentFactory.get_model(config)
         self.model = self.model.to(config.device)
@@ -43,13 +43,13 @@ class Trainer:
         self.model_target_cols = self.get_model_target_cols()
         self.old_factor_dict = get_sub_factor(config.input_path, old=True)
 
-        self.y_numerators = pickle.load(
-            open(config.output_path / f"y_numerators_{config.target_scale_method}.npy", "rb")
+        self.y_numerators = np.load(
+            config.output_path / f"y_numerators_{config.target_scale_method}.npy"
         )
-        self.y_denominators = pickle.load(
-            open(config.output_path / f"y_denominators_{config.target_scale_method}.npy", "rb")
+        self.y_denominators = np.load(
+            config.output_path / f"y_denominators_{config.target_scale_method}.npy"
         )
-        self.target_min_max = [TARGET_MIN_MAX[col] for col in config.target_cols]
+        self.target_min_max = [TARGET_MIN_MAX[col] for col in self.target_cols]
 
         self.pp_run = True
         self.pp_y_cols = PP_TARGET_COLS
@@ -78,8 +78,10 @@ class Trainer:
             self.save_oof_df(preds, self.valid_ids)
             return score, cw_score, -1
 
-        self.optimizer = self.factory.get_optimizer()
-        self.scheduler = self.factory.get_scheduler(steps_per_epoch=len(train_loader))
+        self.optimizer = ComponentFactory.get_optimizer(config, self.model)
+        self.scheduler = ComponentFactory.get_scheduler(
+            config, self.optimizer, steps_per_epoch=len(train_loader)
+        )
 
         global_step = 0
         eval_count = 0
@@ -328,12 +330,12 @@ class Trainer:
     def forward_step(self, data: torch.Tensor, calc_loss: bool = True):
         if calc_loss:
             x, y = data
-            x, y = x.to(self.device), y.to(self.device)
+            x, y = x.to(self.config.device), y.to(self.config.device)
             out = self.model(x)
             loss = self.loss_fn(out, y)
         else:
             x = data
-            x = x.to(self.device)
+            x = x.to(self.config.device)
             out = self.model(x)
             loss = None
 
