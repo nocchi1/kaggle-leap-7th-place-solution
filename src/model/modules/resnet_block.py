@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from src.torch.models.modules import SEBlock1D
+from src.model.modules.se_block import SEBlock1D
 
 
 class InceptionModule(nn.Module):
@@ -32,12 +32,22 @@ class InceptionModule(nn.Module):
 
 
 class ResNetBlock(nn.Module):
-    def __init__(self, in_dim: int, out_dim: int, activation: nn.Module = nn.ELU(), kernel_size: int = 5, dropout: float = 0.0, inception: bool = False):
+    def __init__(
+        self,
+        in_dim: int,
+        out_dim: int,
+        activation: nn.Module,
+        kernel_size: int = 5,
+        dropout: float = 0.0,
+        inception: bool = False,
+    ):
         super().__init__()
         assert kernel_size % 2 == 1, "Kernel size must be odd"
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.conv_skip = nn.Conv1d(in_channels=in_dim, out_channels=out_dim, kernel_size=1, stride=1, padding=0)
+        self.conv_skip = nn.Conv1d(
+            in_channels=in_dim, out_channels=out_dim, kernel_size=1, stride=1, padding=0
+        )
         if inception:
             self.conv_1 = InceptionModule(in_dim, out_dim)
             self.conv_2 = InceptionModule(out_dim, out_dim)

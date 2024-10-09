@@ -26,16 +26,23 @@ class VerticalEncoding(nn.Module):
 
 
 class HorizontalEncoding(nn.Module):
-    def __init__(self, hidden_dim: int, input_path: PosixPath = Path("../data/input"), learnable: bool = False):
+    def __init__(
+        self,
+        hidden_dim: int,
+        input_path: PosixPath = Path("../data/input"),
+        from_coord: bool = False,
+    ):
         super().__init__()
-        self.input_path = input_path
-        embedding = self.load_grid_embedding()
-        if learnable:
-            self.embedding = nn.Parameter(torch.tensor(embedding, dtype=torch.float), requires_grad=True)
+        self.add_path = input_path / "additional"
+        self.from_coord = from_coord
+        self.grid_nunq = 384
+
+        if from_coord:
+            self.embedding = self.load_grid_embedding()
+            self.fc = nn.Linear(self.grid_nunq, hidden_dim)
+            self.bn = nn.BatchNorm1d(hidden_dim)
         else:
-            self.register_buffer("embedding", torch.tensor(embedding, dtype=torch.float))
-        self.fc = nn.Linear(embedding.shape[0], hidden_dim)
-        self.bn = nn.BatchNorm1d(hidden_dim)
+            self.embedding = nn.Embedding(self.grid_nunq, hidden_dim)
 
     def load_grid_embedding(self):
         grid_feat = pl.read_parquet(self.add_path / "grid_feat.parquet")
@@ -43,12 +50,15 @@ class HorizontalEncoding(nn.Module):
         lat_lon = np.radians(lat_lon)
         distance = haversine_distances(lat_lon)
         embedding = distance / distance.max()
-        return embedding
+        return torch.tensor(embedding, dtype=torch.float32)
 
     def forward(self, x, g_id):
-        emb = self.embedding[g_id]
-        emb = self.fc(emb)
-        emb = self.bn(emb)
+        if self.from_coord:
+            emb = self.embedding[g_id]
+            emb = self.fc(emb)
+            emb = self.bn(emb)
+        else:
+            emb = self.embedding(g_id)
         x = x + emb.unsqueeze(1)
         return x
 
@@ -57,11 +67,11 @@ class VHPositionalEncoding(nn.Module):
     def __init__(self, hidden_dim: int, max_length: int = 60, learnable: bool = False):
         super().__init__()
         self.v_enc = VerticalEncoding(hidden_dim, max_length, learnable=learnable)
-        self.h_enc = HorizontalEncoding(hidden_dim, learnable=learnable)
+        self.h_enc = HorizontalEncoding(hidden_dim, from_coord=False)
         self.bn = nn.BatchNorm1d(hidden_dim)
 
     def forward(self, x, g_id):
         x = self.v_enc(x)
-        x = self.h_enc(x)
+        x = self.h_enc(x, g_id)
         x = self.bn(x.transpose(1, 2)).transpose(1, 2)
         return x

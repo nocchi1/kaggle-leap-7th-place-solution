@@ -15,7 +15,9 @@ class FeatureEngineering:
             grid_info_path = config.add_path / "ClimSim_low-res_grid-info.nc"
             grid_info = xr.open_dataset(grid_info_path)
             grid_info = pl.from_pandas(grid_info.to_dataframe().reset_index())
-            self.hybi = grid_info.unique(subset=['ilev', 'hybi'], maintain_order=True)['hybi'].to_numpy()
+            self.hybi = grid_info.unique(subset=["ilev", "hybi"], maintain_order=True)[
+                "hybi"
+            ].to_numpy()
             np.save(hybi_path, self.hybi)
 
         self.use_latlon = config.use_grid_feat
@@ -41,13 +43,23 @@ class FeatureEngineering:
         # Ice ratio inside the cloud
         exprs = []
         for i in range(60):
-            exprs.append((pl.col(f"state_q0003_{i}") / (pl.col(f"state_q0002_{i}") + pl.col(f"state_q0003_{i}"))).alias(f"state_ice_rate_{i}"))
+            exprs.append(
+                (
+                    pl.col(f"state_q0003_{i}")
+                    / (pl.col(f"state_q0002_{i}") + pl.col(f"state_q0003_{i}"))
+                ).alias(f"state_ice_rate_{i}")
+            )
         df = df.with_columns(exprs)
 
         # Theoretical ice ratio inside the cloud
         exprs = []
         for i in range(60):
-            exprs.append((pl.col(f"state_ice_rate_{i}") - ((Tf - pl.col(f"state_t_{i}")) / (Tf - Ts)).clip(0, 1)).alias(f"state_ice_rate_diff_{i}"))
+            exprs.append(
+                (
+                    pl.col(f"state_ice_rate_{i}")
+                    - ((Tf - pl.col(f"state_t_{i}")) / (Tf - Ts)).clip(0, 1)
+                ).alias(f"state_ice_rate_diff_{i}")
+            )
         df = df.with_columns(exprs)
 
         exprs = []
@@ -55,7 +67,9 @@ class FeatureEngineering:
             exprs.extend(
                 [
                     pl.when(
-                        (pl.col(f"state_ice_rate_{i}").is_null()) | (pl.col(f"state_ice_rate_{i}").is_nan()) | (pl.col(f"state_ice_rate_{i}").is_infinite())
+                        (pl.col(f"state_ice_rate_{i}").is_null())
+                        | (pl.col(f"state_ice_rate_{i}").is_nan())
+                        | (pl.col(f"state_ice_rate_{i}").is_infinite())
                     )
                     .then(pl.lit(0))
                     .otherwise(pl.col(f"state_ice_rate_{i}"))
@@ -81,7 +95,9 @@ class FeatureEngineering:
         # Relative humidity
         t_val = df.select([f"state_t_{i}" for i in range(60)]).to_numpy()
         q1_val = df.select([f"state_q0001_{i}" for i in range(60)]).to_numpy()
-        esat_val = 6.112 * np.exp((17.67 * (t_val - 273.16)) / (t_val - 29.65))  # Saturation vapor pressure (simplified)
+        esat_val = 6.112 * np.exp(
+            (17.67 * (t_val - 273.16)) / (t_val - 29.65)
+        )  # Saturation vapor pressure (simplified)
         rh_val = dp_val / esat_val * q1_val
 
         # Vapor pressure

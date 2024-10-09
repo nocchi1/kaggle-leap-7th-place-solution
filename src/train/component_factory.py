@@ -1,9 +1,9 @@
 from omegaconf import DictConfig
 from torch import nn
 
-from src.model.models.conv1d_seq2seq import Conv1DSeq2Seq
-from src.model.models.lstm_seq2seq import LSTMSeq2Seq
-from src.model.models.transformer_seq2seq import TransformerSeq2Seq
+from model.models.conv1d import LEAPConv1D
+from model.models.lstm import LEAPLSTM
+from model.models.transformer import LEAPTransformer
 from src.train.optimizer import get_optimizer
 from src.train.scheduler import get_scheduler
 
@@ -15,7 +15,7 @@ class ComponentFactory:
     def get_model(self):
         if self.config.task_type == "main":
             if self.config.model_type == "conv1d":
-                model = Conv1DSeq2Seq(
+                model = LEAPConv1D(
                     in_dim=self.config.in_dim,
                     out_dim=self.config.out_dim,
                     hidden_dim=self.config.hidden_dim,
@@ -24,7 +24,7 @@ class ComponentFactory:
                     multitask=self.config.multi_task,
                 )
             elif self.config.model_type == "lstm":
-                model = LSTMSeq2Seq(
+                model = LEAPLSTM(
                     in_dim=self.config.in_dim,
                     out_dim=self.config.out_dim,
                     hidden_dim=self.config.hidden_dim,
@@ -33,7 +33,7 @@ class ComponentFactory:
                     multitask=self.config.multi_task,
                 )
             elif self.config.model_type == "transformer":
-                model = TransformerSeq2Seq(
+                model = LEAPTransformer(
                     in_dim=self.config.in_dim,
                     out_dim=self.config.out_dim,
                     hidden_dim=self.config.hidden_dim,

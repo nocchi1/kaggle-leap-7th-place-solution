@@ -3,11 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 
 
-class LEAPModel(nn.Module):
-    """
-    Base class for all LEAP models
-    """
-
+class BaseModel(nn.Module):
     def __init__(self, n_vertical: int):
         super().__init__()
         self.n_vertical = n_vertical
@@ -22,9 +18,13 @@ class LEAPModel(nn.Module):
         feat = []
         # Calculate lag features for both forward and backward directions
         for t in [1, 2, 3, 4, 5]:
-            x_f = torch.cat([torch.zeros(x.size(0), t, x.size(2), device=x.device), x[:, : (60 - t), :]], dim=1)
+            x_f = torch.cat(
+                [torch.zeros(x.size(0), t, x.size(2), device=x.device), x[:, : (60 - t), :]], dim=1
+            )
             feat.append(x_f)
-            x_b = torch.cat([x[:, t:, :], torch.zeros(x.size(0), t, x.size(2), device=x.device)], dim=1)
+            x_b = torch.cat(
+                [x[:, t:, :], torch.zeros(x.size(0), t, x.size(2), device=x.device)], dim=1
+            )
             feat.append(x_b)
         feat = torch.cat(feat, dim=-1)
         return feat
@@ -41,7 +41,9 @@ class LEAPModel(nn.Module):
         backward_diff = torch.cat([backward_diff, torch.zeros_like(x[:, 0, :]).unsqueeze(1)], dim=1)
         # Backward direction second diff
         backward_diff2 = torch.diff(backward_diff.flip(1), dim=1).flip(1)
-        backward_diff2 = torch.cat([backward_diff2, torch.zeros_like(x[:, 0, :]).unsqueeze(1)], dim=1)
+        backward_diff2 = torch.cat(
+            [backward_diff2, torch.zeros_like(x[:, 0, :]).unsqueeze(1)], dim=1
+        )
         feat = torch.cat([forward_diff, forward_diff2, backward_diff, backward_diff2], dim=-1)
         return feat
 

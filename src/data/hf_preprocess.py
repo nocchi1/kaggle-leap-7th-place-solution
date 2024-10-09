@@ -8,30 +8,51 @@ from tqdm.auto import tqdm
 
 from src.data.feature_engineering import FeatureEngineering
 from src.data.preprocess import Preprocessor
-from src.utils.competition_utils import clipping_input, get_io_columns, multiply_old_factor, shrink_memory
+from src.utils.competition_utils import (
+    clipping_input,
+    get_io_columns,
+    multiply_old_factor,
+    shrink_memory,
+)
 
 
 class HFPreprocessor:
     def __init__(self, config):
         self.config = config
         self.hf_files = list((self.config.add_path / "huggingface").glob("*.parquet"))
+        if len(self.hf_files) == 0:
+            raise FileNotFoundError("You need to download the additional data from HF.")
 
         self.input_cols, self.target_cols = get_io_columns(config)
         self.fer = FeatureEngineering(config)
         self.ppr = Preprocessor(config)
-        self.input_clip_dict = pickle.load(open(self.config.output_path / "input_clip_dict.pkl", "rb"))
+        self.input_clip_dict = pickle.load(
+            open(self.config.output_path / "input_clip_dict.pkl", "rb")
+        )
 
         # Year-months used for shared_valid
-        self.valid_ym = ["0008-07", "0008-08", "0008-09", "0008-10", "0008-11", "0008-12", "0009-01"]
+        self.valid_ym = [
+            "0008-07",
+            "0008-08",
+            "0008-09",
+            "0008-10",
+            "0008-11",
+            "0008-12",
+            "0009-01",
+        ]
 
     def shrink_file_size(self):
         shrink_num = len([file for file in self.hf_files if "_shrinked" in file.stem])
         if len(self.hf_files) > 0 and shrink_num == 0:
-            refer_df = pl.read_parquet(self.config.input_path / "train_shrinked.parquet", n_rows=100)
+            refer_df = pl.read_parquet(
+                self.config.input_path / "train_shrinked.parquet", n_rows=100
+            )
             for file in tqdm(self.hf_files):
                 df = pl.read_parquet(file)
                 df = shrink_memory(df, refer_df)
-                df.write_parquet(self.config.add_path / "huggingface" / f"{file.stem}_shrinked.parquet")
+                df.write_parquet(
+                    self.config.add_path / "huggingface" / f"{file.stem}_shrinked.parquet"
+                )
                 file.unlink()
             self.hf_files = list((self.config.add_path / "huggingface").glob("*.parquet"))
 
@@ -46,7 +67,9 @@ class HFPreprocessor:
                 continue
 
             df = pl.read_parquet(file)
-            df = df.with_columns(grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384)
+            df = df.with_columns(
+                grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384
+            )
             if self.config.mul_old_factor:
                 df = multiply_old_factor(self.config.input_path, df)
 
@@ -64,8 +87,12 @@ class HFPreprocessor:
 
             if i == 0:
                 with h5py.File(output_path / "hf_data.h5", "w") as f:
-                    f.create_dataset("X", data=X_train, maxshape=(None, *X_train.shape[1:]), chunks=True)
-                    f.create_dataset("y", data=y_train, maxshape=(None, *y_train.shape[1:]), chunks=True)
+                    f.create_dataset(
+                        "X", data=X_train, maxshape=(None, *X_train.shape[1:]), chunks=True
+                    )
+                    f.create_dataset(
+                        "y", data=y_train, maxshape=(None, *y_train.shape[1:]), chunks=True
+                    )
             else:
                 with h5py.File(output_path / "hf_data.h5", "a") as f:
                     f["X"].resize((f["X"].shape[0] + X_train.shape[0]), axis=0)
@@ -79,13 +106,20 @@ class HFPreprocessor:
                 y_train_mt = np.concatenate(
                     [
                         self.ppr._convert_target_array(df, self.config.target_shape, suffix="_lag"),
-                        self.ppr._convert_target_array(df, self.config.target_shape, suffix="_lead"),
+                        self.ppr._convert_target_array(
+                            df, self.config.target_shape, suffix="_lead"
+                        ),
                     ],
                     axis=-1,
                 )
                 if i == 0:
                     with h5py.File(output_path / "hf_data.h5", "a") as f:
-                        f.create_dataset("y_mt", data=y_train_mt, maxshape=(None, *y_train_mt.shape[1:]), chunks=True)
+                        f.create_dataset(
+                            "y_mt",
+                            data=y_train_mt,
+                            maxshape=(None, *y_train_mt.shape[1:]),
+                            chunks=True,
+                        )
                 else:
                     with h5py.File(output_path / "hf_data.h5", "a") as f:
                         f["y_mt"].resize((f["y_mt"].shape[0] + y_train_mt.shape[0]), axis=0)

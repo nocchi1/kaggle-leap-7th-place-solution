@@ -164,4 +164,3 @@ cython_debug/
 # Additional
 .ruff_cache/
 .DS_Store
-exp/
