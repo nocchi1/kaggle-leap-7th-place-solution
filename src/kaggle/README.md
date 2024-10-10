@@ -13,4 +13,4 @@ kaggle competitions submit leap-atmospheric-physics-ai-climsim -f file_path -m m
 kaggle datasets download zillow/zecon -p data_path --unzip
 
 # Upload Datasets
-python src/kaggle/upload -p data_path -t dataset_title # --public
+python src/kaggle/upload.py -p data_path -t dataset_title # --public

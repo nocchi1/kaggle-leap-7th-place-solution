@@ -26,6 +26,7 @@ from src.utils.constant import (
 class Trainer:
     def __init__(self, config: DictConfig, logger: loguru._Logger, save_suffix: str = ""):
         self.config = config
+        self.eval_step = config.eval_step[config.run_mode]
         self.logger = logger
         self.save_suffix = save_suffix
         self.detail_pbar = True
@@ -41,6 +42,7 @@ class Trainer:
 
         _, self.target_cols = get_io_columns(config)
         self.model_target_cols = self.get_model_target_cols()
+        self.factor_dict = get_sub_factor(config.input_path, old=False)
         self.old_factor_dict = get_sub_factor(config.input_path, old=True)
 
         self.y_numerators = np.load(
@@ -51,6 +53,10 @@ class Trainer:
         )
         self.target_min_max = [TARGET_MIN_MAX[col] for col in self.target_cols]
 
+        self.valid_ids = None
+        self.test_ids = None
+        self.valid_pp_df = None
+        self.test_pp_df = None
         self.pp_run = True
         self.pp_y_cols = PP_TARGET_COLS
         self.pp_x_cols = [col.replace("ptend", "state") for col in self.pp_y_cols]
@@ -75,14 +81,13 @@ class Trainer:
             score, cw_score, preds, _ = self.valid_evaluate(
                 valid_loader, current_epoch=-1, eval_count=-1, eval_method=eval_method
             )
-            self.save_oof_df(preds, self.valid_ids)
+            self.save_oof_df(self.valid_ids, preds)
             return score, cw_score, -1
 
-        self.optimizer = ComponentFactory.get_optimizer(config, self.model)
+        self.optimizer = ComponentFactory.get_optimizer(self.config, self.model)
         self.scheduler = ComponentFactory.get_scheduler(
-            config, self.optimizer, steps_per_epoch=len(train_loader)
+            self.config, self.optimizer, steps_per_epoch=len(train_loader)
         )
-
         global_step = 0
         eval_count = 0
         best_score = -np.inf
@@ -96,11 +101,12 @@ class Trainer:
             )
             weight_numbers = [
                 int(file.stem.split("_")[-1].replace("eval", ""))
-                for file in list(self.output_path.glob(f"model{self.save_suffix}_eval*.pth"))
+                for file in list(self.config.output_path.glob(f"model{self.save_suffix}_eval*.pth"))
             ]
             eval_count = sorted(weight_numbers)[-1] + 1
             best_score = retrain_best_score
 
+        # 学習ループの開始
         for epoch in tqdm(range(self.config.epochs)):
             self.model.train()
             self.train_loss.reset()
@@ -117,7 +123,7 @@ class Trainer:
                 self.train_loss.update(loss.item(), n=data[0].size(0))
                 global_step += 1
 
-                if global_step % self.config.eval_step == 0:
+                if global_step % self.eval_step == 0:
                     score, _, preds, update_num = self.valid_evaluate(
                         valid_loader,
                         current_epoch=epoch,
@@ -157,7 +163,7 @@ class Trainer:
                 valid_loader, current_epoch=-1, eval_count=-1, eval_method="colwise"
             )
 
-        self.save_oof_df(best_preds, self.valid_ids)
+        self.save_oof_df(self.valid_ids, best_preds)
         return best_score, best_cw_score, best_epochs
 
     def valid_evaluate(
@@ -168,10 +174,13 @@ class Trainer:
         eval_method: Literal["single", "colwise"] = "single",
     ):
         if self.valid_ids is None:
-            self.valid_ids = valid_loader.dataset.sample_ids
+            self.valid_ids = valid_loader.dataset.ids
 
         if eval_method == "single":
-            preds = self.inference_loop(valid_loader, mode="valid", load_best_weight=False)
+            load_best_weight = True if eval_count == -1 else False
+            preds = self.inference_loop(
+                valid_loader, mode="valid", load_best_weight=load_best_weight
+            )
         elif eval_method == "colwise":
             preds = self.inference_loop_colwise(valid_loader, "valid", self.best_score_dict)
 
@@ -181,7 +190,7 @@ class Trainer:
         preds = self.restore_pred(preds)
         labels = self.restore_pred(labels)
 
-        if self.pp_run and self.valid_pp_x is None:
+        if self.pp_run and self.valid_pp_df is None:
             self.load_postprocess_input("valid")
         if self.pp_run:
             preds = self.postprocess(preds, run_type="valid")
@@ -208,7 +217,7 @@ class Trainer:
         self, test_loader: DataLoader, eval_method: Literal["single", "colwise"] = "single"
     ):
         if self.test_ids is None:
-            self.test_ids = test_loader.dataset.sample_ids
+            self.test_ids = test_loader.dataset.ids
 
         if eval_method == "single":
             preds = self.inference_loop(test_loader, mode="test", load_best_weight=True)
@@ -219,7 +228,7 @@ class Trainer:
             preds = self.inference_loop_colwise(test_loader, "test", self.best_score_dict)
 
         preds = self.restore_pred(preds)
-        if self.pp_run and self.test_pp_x is None:
+        if self.pp_run and self.test_pp_df is None:
             self.load_postprocess_input("test")
         if self.pp_run:
             preds = self.postprocess(preds, run_type="test")
@@ -314,7 +323,7 @@ class Trainer:
         ) / 368
         if update_num > 0 and eval_count != -1:
             pickle.dump(
-                self.best_score_dict,
+                dict(self.best_score_dict),
                 open(self.config.output_path / f"best_score_dict{self.save_suffix}.pkl", "wb"),
             )
         return best_cw_score, update_num
@@ -334,7 +343,7 @@ class Trainer:
             out = self.model(x)
             loss = self.loss_fn(out, y)
         else:
-            x = data
+            x = data[0]
             x = x.to(self.config.device)
             out = self.model(x)
             loss = None
@@ -343,12 +352,19 @@ class Trainer:
             out = self.convert_target_3dim_to_2dim(out)
         return out, loss
 
-    def convert_target_3dim_to_2dim(self, y: torch.Tensor) -> torch.Tensor:
+    def convert_target_3dim_to_2dim(
+        self, y: np.ndarray | torch.Tensor
+    ) -> np.ndarray | torch.Tensor:
         y_v = y[:, :, : len(VERTICAL_TARGET_COLS)]
         y_s = y[:, :, len(VERTICAL_TARGET_COLS) :]
-        y_v = y_v.permute(0, 2, 1).reshape(y.size(0), -1)
-        y_s = y_s.mean(dim=1)
-        y = torch.cat([y_v, y_s], dim=-1)
+        if isinstance(y, np.ndarray):
+            y_v = np.transpose(y_v, (0, 2, 1)).reshape(y.shape[0], -1)
+            y_s = y_s.mean(axis=1)
+            y = np.concatenate([y_v, y_s], axis=-1)
+        elif isinstance(y, torch.Tensor):
+            y_v = y_v.permute(0, 2, 1).reshape(y.size(0), -1)
+            y_s = y_s.mean(dim=1)
+            y = torch.cat([y_v, y_s], dim=-1)
         y = self.alignment_target_idx(y)
         return y
 
@@ -370,7 +386,7 @@ class Trainer:
         return model_target_cols
 
     def restore_pred(self, preds: np.ndarray):
-        return preds * self.config.y_denominators + self.config.y_numerators
+        return preds * self.y_denominators + self.y_numerators
 
     def clipping_pred(self, preds: np.ndarray):
         for i in range(preds.shape[1]):
@@ -383,7 +399,7 @@ class Trainer:
         oof_df.write_parquet(self.config.oof_path / f"oof{self.save_suffix}.parquet")
 
     def postprocess(self, preds: np.ndarray, run_type: Literal["valid", "test"]):
-        pp_x = self.valid_pp_x if run_type == "valid" else self.test_pp_x
+        pp_x = self.valid_pp_df if run_type == "valid" else self.test_pp_df
         for x_col, y_col in zip(self.pp_x_cols, self.pp_y_cols):
             if y_col in self.target_cols:
                 idx = self.target_cols.index(y_col)
@@ -398,19 +414,19 @@ class Trainer:
                 if self.config.shared_valid
                 else self.config.input_path / "train_shrinked.parquet"
             )
-            self.valid_pp_x = (
+            self.valid_pp_df = (
                 pl.scan_parquet(valid_path)
                 .select(["sample_id"] + self.pp_x_cols)
                 .filter(pl.col("sample_id").is_in(self.valid_ids))
                 .collect()
             )
             id_df = pl.DataFrame({"sample_id": self.valid_ids})
-            self.valid_pp_x = id_df.join(self.valid_pp_x, on="sample_id", how="left")
+            self.valid_pp_df = id_df.join(self.valid_pp_df, on="sample_id", how="left")
 
         elif data_type == "test":
-            self.test_pp_x = pl.read_parquet(
+            self.test_pp_df = pl.read_parquet(
                 self.config.input_path / "test_shrinked.parquet",
                 columns=["sample_id"] + self.pp_x_cols,
             )
             id_df = pl.DataFrame({"sample_id": self.test_ids})
-            self.test_pp_x = id_df.join(self.test_pp_x, on="sample_id", how="left")
+            self.test_pp_df = id_df.join(self.test_pp_df, on="sample_id", how="left")

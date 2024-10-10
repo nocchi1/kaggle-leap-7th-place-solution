@@ -44,9 +44,8 @@ class HFPreprocessor:
     def shrink_file_size(self):
         shrink_num = len([file for file in self.hf_files if "_shrinked" in file.stem])
         if len(self.hf_files) > 0 and shrink_num == 0:
-            refer_df = pl.read_parquet(
-                self.config.input_path / "train_shrinked.parquet", n_rows=100
-            )
+            refer_df = pl.read_parquet(self.config.input_path / "train_shrinked.parquet", n_rows=10)
+
             for file in tqdm(self.hf_files):
                 df = pl.read_parquet(file)
                 df = shrink_memory(df, refer_df)

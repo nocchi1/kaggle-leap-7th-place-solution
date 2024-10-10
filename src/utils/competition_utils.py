@@ -156,5 +156,5 @@ def evaluate_metric(
     eval_num = len(indiv_scores)
     # y_pred内に存在しないカラムは1として計算する -> sub_factorが0のカラム, 後処理を適用するカラム
     if target_num - eval_num > 0:
-        total_score = (total_score * eval_num + (target_num - eval_num)) / target_num
+        total_score = (total_score + (target_num - eval_num)) / target_num
     return total_score, indiv_scores
