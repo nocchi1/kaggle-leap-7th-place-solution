@@ -13,7 +13,7 @@ In my solution, I primarily combined LSTM, Transformer, and Conv1D models for tr
 
 Our team's final submission is an ensemble of six models, including the above three models of mine. The ensemble weights were optimized using the Nelder-Mead method. For more details, please refer to the URL provided in the Links section.
 
-## Preparationn
+## Preparationn [to be updated]
 You can set up the environment and download the required data by running the following commands.
 ### Setup
 ```sh
@@ -28,7 +28,7 @@ You can set up the environment and download the required data by running the fol
 . ./bin/download.sh
 ```
 
-## Reproducing the Solution
+## Reproducing the Solution [to be updated]
 
 [Provide step-by-step instructions on how to run the code to reproduce the results, including any necessary configuration settings.]
 
