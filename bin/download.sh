@@ -2,8 +2,8 @@
 
 . .venv/bin/activate
 
-full_train_download=${1:-"false"}
-hf_download=${2:-"false"}
+full_train_download=${1:-"true"}
+hf_download=${2:-"true"}
 
 # Download Kaggle Competition Data
 if [ "$full_train_download" = "true" ]; then
