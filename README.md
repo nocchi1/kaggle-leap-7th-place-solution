@@ -3,7 +3,7 @@
 This repository contains the code for the 7th place solution (Ryota Part) in the LEAP - Atmospheric Physics using AI (ClimSim) competition hosted on Kaggle. In this competition, participants were tasked with developing machine learning models that accurately emulate subgrid-scale atmospheric physics in an operational climate model, an important step in improving climate projections and reducing uncertainty surrounding future climate trends.
 
 ## Solution Summary
-In my solution, I primarily combined LSTM, Transformer, and Conv1D models for training. The model inputs included not only the original data but also data generated through feature engineering that considered domain knowledge. Additionally, to address the issue that the best optimization differs among multiple target columns, I first trained using MAE and then conducted additional training using MSE.
+In my solution, I primarily combined LSTM, Transformer, and Conv1D models for training. The model inputs included not only the original data but also data generated through feature engineering that considered domain knowledge. Additionally, to address the issue that, although we should optimize MSE, the influence of outliers was somewhat too strong, I first trained using MAE and then conducted additional training using MSE.
 
 |  | Public LB | Private LB |
 | --- | --- | --- |
@@ -26,3 +26,4 @@ You can set up the environment and download the required data by running the fol
 ## Links
 - Competition website : [link](https://www.kaggle.com/c/leap-atmospheric-physics-ai-climsim)
 - 7th place solution summary : [link](https://www.kaggle.com/competitions/leap-atmospheric-physics-ai-climsim/discussion/524111)
+- My team members : [sqrt4kaido](https://www.kaggle.com/nomorevotch), [e-toppo](https://www.kaggle.com/masatomatsui), [Rheinmetall](https://www.kaggle.com/rheinmetall)
