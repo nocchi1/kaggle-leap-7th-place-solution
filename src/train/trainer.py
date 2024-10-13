@@ -61,11 +61,11 @@ class Trainer:
         )
         self.target_min_max = [TARGET_MIN_MAX[col] for col in self.target_cols]
 
+        self.pp_run = True
         self.valid_ids = None
         self.test_ids = None
         self.valid_pp_df = None
         self.test_pp_df = None
-        self.pp_run = True
         self.pp_y_cols = PP_TARGET_COLS
         self.pp_x_cols = [col.replace("ptend", "state") for col in self.pp_y_cols]
 
@@ -408,10 +408,7 @@ class Trainer:
             y_v = y_v.permute(0, 2, 1).reshape(y.size(0), -1)
             y_s = y_s.mean(dim=1)
             y = torch.cat([y_v, y_s], dim=-1)
-        y = self.alignment_target_idx(y)
-        return y
 
-    def alignment_target_idx(self, y: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         align_order = [self.model_target_cols.index(col) for col in self.target_cols]
         assert len(y.shape) == 2
         y = y[:, align_order]

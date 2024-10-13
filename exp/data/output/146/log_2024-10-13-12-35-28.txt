@@ -1,0 +1,12 @@
+[ 2024-10-13 12:35:28 | INFO ] exp: 146 | run_mode=hf, multi_task=False, loss_type=mae
+[ 2024-10-13 13:05:42 | INFO ] [Valid] : Epoch=0, Loss=0.22057, Score=0.77209, Best Col-Wise Score=0.77264
+[ 2024-10-13 13:21:57 | INFO ] [Valid] : Epoch=0, Loss=0.21976, Score=0.77320, Best Col-Wise Score=0.77353
+[ 2024-10-13 13:28:53 | INFO ] [Train] : Epoch=0, Loss=0.22112, LR=9.88204e-06
+[ 2024-10-13 13:38:13 | INFO ] [Valid] : Epoch=1, Loss=0.21973, Score=0.77299, Best Col-Wise Score=0.77386
+[ 2024-10-13 13:54:28 | INFO ] [Valid] : Epoch=1, Loss=0.21938, Score=0.77326, Best Col-Wise Score=0.77412
+[ 2024-10-13 14:08:19 | INFO ] [Train] : Epoch=1, Loss=0.21791, LR=9.53003e-06
+[ 2024-10-13 14:10:45 | INFO ] [Valid] : Epoch=2, Loss=0.21920, Score=0.77338, Best Col-Wise Score=0.77440
+[ 2024-10-13 14:35:36 | INFO ] [Valid] : Epoch=-1, Loss=0.22610, Score=0.77440, Best Col-Wise Score=0.77440
+[ 2024-10-13 14:35:43 | INFO ] Additional Training Results: best_score=0.7743972348347803, best_cw_score=0.7743972348347803, best_epochs=-1
+[ 2024-10-13 15:04:03 | INFO ] After Additional Postprocess: 0.77443
+[ 2024-10-13 15:04:26 | INFO ] OOF: (625000, 369), Submission: (625000, 369)
