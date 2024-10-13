@@ -348,6 +348,9 @@ class Trainer:
             out = self.model(x)
             loss = None
 
+        if self.config.multi_task:
+            out = out[:, :, : self.config.out_dim]
+
         if self.config.target_shape == "3dim":
             out = self.convert_target_3dim_to_2dim(out)
         return out, loss

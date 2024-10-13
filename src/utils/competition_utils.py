@@ -85,25 +85,25 @@ def get_io_columns(config: DictConfig) -> tuple[list[str], list[str]]:
 
 
 def clipping_input(
-    train_df: pl.DataFrame | None,
-    test_df: pl.DataFrame,
+    refer_df: pl.DataFrame | None,
+    target_df: pl.DataFrame,
     input_cols: list[str],
     clip_dict: dict[str, tuple[float, float]] | None = None,
 ) -> pl.DataFrame:
-    if train_df is None and clip_dict is None:
-        raise ValueError("train_df or clip_dict is required.")
+    if refer_df is None and clip_dict is None:
+        raise ValueError("refer_df or clip_dict is required.")
 
     exprs = []
     clip_dict_ = {} if clip_dict is None else clip_dict
     for col in input_cols:
-        if train_df is not None:
-            min_val, max_val = train_df[col].min(), train_df[col].max()
+        if refer_df is not None:
+            min_val, max_val = refer_df[col].min(), refer_df[col].max()
             clip_dict_[col] = (min_val, max_val)
         else:
             min_val, max_val = clip_dict[col]
         exprs.append(pl.col(col).clip(min_val, max_val).alias(col))
-    test_df = test_df.with_columns(exprs)
-    return test_df, clip_dict_
+    target_df = target_df.with_columns(exprs)
+    return target_df, clip_dict_
 
 
 def remove_duplicate_records(target_df: pl.DataFrame, refer_df: pl.DataFrame) -> pl.DataFrame:

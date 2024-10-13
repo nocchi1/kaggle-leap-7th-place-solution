@@ -114,8 +114,6 @@ class HFDataLoader:
                     break
                 dir_name = f"000{year}-{str(month).zfill(2)}"
                 dir_patterns.append(dir_name)
-
-        dir_patterns = ["0008-10"]
         return dir_patterns
 
     def get_column_name(self):

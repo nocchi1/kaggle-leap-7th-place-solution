@@ -13,7 +13,7 @@ else
   kaggle datasets download ryotak12/leap-train-downsampling -p data/input
 fi
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f test.csv -p data/input
-kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f test_old.csv -p data/input
+# kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f test_old.csv -p data/input
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission.csv -p data/input
 kaggle competitions download -c leap-atmospheric-physics-ai-climsim -f sample_submission_old.csv -p data/input
 
@@ -40,5 +40,5 @@ kaggle datasets download ryotak12/leap-shared-validation -f 18.parquet -p data/i
 
 # Download HF Additional Data
 if [ "$hf_download" = "true" ]; then
-    python src/data/hf_download.py # This will take an extremely long time
+    python src/data/hf_download.py
 fi

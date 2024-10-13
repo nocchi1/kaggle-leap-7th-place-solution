@@ -21,8 +21,10 @@ trans_num_layers: 4
 lstm_block_num: 2
 
 loss_type: 'mse'
+ema: false
 train_batch: 1024
 eval_batch: 4096
+batch_file_size: 10
 epochs: 100
 eval_step:
   hf: 4000
