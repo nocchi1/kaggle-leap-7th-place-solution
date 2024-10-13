@@ -1,3 +1,151 @@
+#!/usr/bin/env python
+
+# In[1]:
+
+
+import gc
+import pickle
+from pathlib import Path, PosixPath
+
+import polars as pl
+from tqdm.auto import tqdm
+
+from src.data import DataProvider, FeatureEngineering, HFPreprocessor, PostProcessor, Preprocessor
+from src.train import get_dataloader
+
+# import sys
+# sys.path.append('..')
+from src.utils import TimeUtil, get_config, get_logger, seed_everything
+from src.utils.competition_utils import clipping_input
+
+# In[3]:
+
+
+# コマンドライン引数
+exp = "146"
+
+
+# In[4]:
+
+
+config = get_config(exp, config_dir=Path("./config"))
+logger = get_logger(config.output_path)
+logger.info(
+    f"exp: {exp} | run_mode={config.run_mode}, multi_task={config.multi_task}, loss_type={config.loss_type}"
+)
+
+seed_everything(config.seed)
+
+
+# In[ ]:
+
+
+# 実験のための変更
+config.run_mode = "full"
+config.epochs = 40
+config.first_cycle_epochs = 40
+config.add_epochs = 10
+config.add_first_cycle_epochs = 10
+
+
+# In[6]:
+
+
+with TimeUtil.timer("Data Loading..."):
+    dpr = DataProvider(config)
+    train_df, test_df = dpr.load_data()
+
+
+with TimeUtil.timer("Feature Engineering..."):
+    fer = FeatureEngineering(config)
+    train_df = fer.feature_engineering(train_df)
+    test_df = fer.feature_engineering(test_df)
+
+
+with TimeUtil.timer("Scaling and Clipping Features..."):
+    ppr = Preprocessor(config)
+    train_df, test_df = ppr.scaling(train_df, test_df)
+    input_cols, target_cols = ppr.input_cols, ppr.target_cols
+    if config.task_type == "grid_pred":
+        train_df = train_df.drop(target_cols)
+
+    valid_df = train_df.filter(pl.col("fold") == 0)
+    train_df = train_df.filter(pl.col("fold") != 0)
+    valid_df, input_clip_dict = clipping_input(train_df, valid_df, input_cols)
+    test_df, _ = clipping_input(None, test_df, input_cols, input_clip_dict)
+    pickle.dump(input_clip_dict, open(config.output_path / "input_clip_dict.pkl", "wb"))
+
+
+with TimeUtil.timer("Converting to arrays for NN..."):
+    array_data = ppr.convert_numpy_array(train_df, valid_df, test_df)
+    del train_df, valid_df, test_df
+    gc.collect()
+
+
+if config.run_mode == "hf":
+    with TimeUtil.timer("HF Data Preprocessing..."):
+        del array_data["train_ids"], array_data["X_train"], array_data["y_train"]
+        gc.collect()
+
+        hf_ppr = HFPreprocessor(config)
+        hf_ppr.shrink_file_size()
+        hf_ppr.convert_numpy_array(unlink_parquet=True)
+
+
+# In[7]:
+
+
+with TimeUtil.timer("Creating Torch DataLoader..."):
+    if config.run_mode == "hf":
+        train_loader = get_dataloader(config, hf_read_type="npy", is_train=True)
+    else:
+        train_loader = get_dataloader(
+            config,
+            array_data["train_ids"],
+            array_data["X_train"],
+            array_data["y_train"],
+            is_train=True,
+        )
+    valid_loader = get_dataloader(
+        config,
+        array_data["valid_ids"],
+        array_data["X_valid"],
+        array_data["y_valid"],
+        is_train=False,
+    )
+    test_loader = get_dataloader(
+        config, array_data["test_ids"], array_data["X_test"], is_train=False
+    )
+    del array_data
+    gc.collect()
+
+
+# In[23]:
+
+
+# train_dataset = train_loader.dataset
+# valid_dataset = valid_loader.dataset
+
+# train_dataset.X = train_dataset.X[:100000]
+# train_dataset.y = train_dataset.y[:100000]
+# train_dataset.ids = train_dataset.ids[:100000]
+# valid_dataset.X = valid_dataset.X[:100000]
+# valid_dataset.y = valid_dataset.y[:100000]
+# valid_dataset.ids = valid_dataset.ids[:100000]
+
+# train_loader = DataLoader(
+#     train_dataset, batch_size=config.train_batch, shuffle=True, pin_memory=True, drop_last=True
+# )
+# valid_loader = DataLoader(
+#     valid_dataset, batch_size=config.eval_batch, shuffle=False, pin_memory=True, drop_last=False
+# )
+
+
+# # Trainer
+
+# In[34]:
+
+
 import pickle
 from collections import defaultdict
 from typing import Dict, List, Literal, Tuple
@@ -9,7 +157,6 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from torch import nn
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
 
 from src.train import AverageMeter, ComponentFactory, ModelEmaV3
 from src.utils import clean_message
@@ -61,11 +208,11 @@ class Trainer:
         )
         self.target_min_max = [TARGET_MIN_MAX[col] for col in self.target_cols]
 
+        self.pp_run = True
         self.valid_ids = None
         self.test_ids = None
         self.valid_pp_df = None
         self.test_pp_df = None
-        self.pp_run = True
         self.pp_y_cols = PP_TARGET_COLS
         self.pp_x_cols = [col.replace("ptend", "state") for col in self.pp_y_cols]
 
@@ -408,10 +555,7 @@ class Trainer:
             y_v = y_v.permute(0, 2, 1).reshape(y.size(0), -1)
             y_s = y_s.mean(dim=1)
             y = torch.cat([y_v, y_s], dim=-1)
-        y = self.alignment_target_idx(y)
-        return y
 
-    def alignment_target_idx(self, y: np.ndarray | torch.Tensor) -> np.ndarray | torch.Tensor:
         align_order = [self.model_target_cols.index(col) for col in self.target_cols]
         assert len(y.shape) == 2
         y = y[:, align_order]
@@ -470,3 +614,79 @@ class Trainer:
             )
             id_df = pl.DataFrame({"sample_id": self.test_ids})
             self.test_pp_df = id_df.join(self.test_pp_df, on="sample_id", how="left")
+
+
+# In[25]:
+
+
+trainer = Trainer(config, logger)
+best_score, best_cw_score, best_epochs = trainer.train(
+    train_loader,
+    valid_loader,
+    colwise_mode=True,
+)
+logger.info(
+    f"First Training Results: best_score={best_score}, best_cw_score={best_cw_score}, best_epochs={best_epochs}"
+)
+
+
+# # Additional Training
+
+# In[33]:
+
+
+config.loss_type = config.add_loss_type
+config.epochs = config.add_epochs
+config.lr = config.add_lr
+config.first_cycle_epochs = config.add_first_cycle_epochs
+
+
+# In[38]:
+
+
+trained_weights = sorted(
+    config.output_path.glob("model_eval*.pth"),
+    key=lambda x: int(x.stem.split("_")[-1].replace("eval", "")),
+)
+
+trainer = Trainer(config, logger)
+best_score, best_cw_score, best_epochs = trainer.train(
+    train_loader,
+    valid_loader,
+    colwise_mode=True,
+    retrain=True,
+    retrain_weight_name=trained_weights[-1].stem,
+    retrain_best_score=best_score,
+)
+logger.info(
+    f"Additional Training Results: best_score={best_score}, best_cw_score={best_cw_score}, best_epochs={best_epochs}"
+)
+
+
+# # Inference
+
+# In[40]:
+
+
+pred_df = trainer.test_predict(test_loader, eval_method="colwise")
+pred_df.write_csv(config.output_path / "submission.csv")
+
+
+# # PostProcess
+
+# In[81]:
+
+
+oof_df = pl.read_parquet(config.oof_path / "oof.parquet")
+pred_df = pl.read_csv(
+    config.output_path / "submission.csv", schema_overrides={"sample_id": pl.Int32}
+)
+oof_df.shape, pred_df.shape
+
+
+# In[85]:
+
+
+por = PostProcessor(config, logger)
+oof_df, sub_df = por.postprocess(oof_df, pred_df)
+logger.info(f"OOF: {oof_df.shape}, Submission: {sub_df.shape}")

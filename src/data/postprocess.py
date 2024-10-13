@@ -10,7 +10,7 @@ from tqdm.auto import tqdm
 from src.utils.competition_utils import get_io_columns, get_sub_factor
 
 
-class PostProcess:
+class PostProcessor:
     def __init__(self, config: DictConfig, logger: loguru._Logger, additional: bool = True):
         self.config = config
         self.logger = logger
@@ -42,7 +42,7 @@ class PostProcess:
         self.add_test_pp_df = pl.read_parquet(
             config.input_path / "test_shrinked.parquet", columns=["sample_id"] + self.add_pp_x_cols
         )
-        self.th_dict = None
+        self.th_dict = {}
 
     def postprocess(self, oof_df: pl.DataFrame, sub_df: pl.DataFrame):
         oof_df = self.complement_columns(oof_df)
@@ -99,7 +99,7 @@ class PostProcess:
         if pred_type == "oof":
             self.tuning_threshold(pred_df)
 
-        assert self.th_dict is not None  # oofから実行する必要がある
+        assert len(self.th_dict) > 0  # oofから実行する必要がある
         exprs = []
         for y_col, (best_th, _) in self.th_dict.items():
             x_col = y_col.replace("ptend", "state")
@@ -129,24 +129,26 @@ class PostProcess:
 
     def tuning_threshold(self, pred_df: pl.DataFrame):
         iterations = tqdm(
-            zip(self.add_pp_x_cols, self.add_pp_y_cols), total=len(self.add_pp_x_cols)
+            zip(self.add_pp_x_cols, self.add_pp_y_cols),
+            total=len(self.add_pp_x_cols),
+            desc="Additional PP Tuning...",
         )
         for x_col, y_col in iterations:
             best_score = r2_score(pred_df[f"{y_col}_gt"].to_numpy(), pred_df[y_col].to_numpy())
             best_th = None
-            for th_base in [0, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5]:
+            for base_th in [0, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5]:
                 for corr in range(1, 10):
-                    if th_base == 0 and corr >= 2:
+                    if base_th == 0 and corr >= 2:
                         break
 
-                    th = th_base * corr
+                    th = base_th * corr
                     preds = pred_df.select(
                         pl.when(pl.col(f"{x_col}_next") < th)
                         .then(-1 * pl.col(x_col) / 1200)
                         .otherwise(pl.col(y_col))
                     ).to_numpy()
 
-                    truths = pred_df[f"{y_col}_label"].to_numpy()
+                    truths = pred_df[f"{y_col}_gt"].to_numpy()
                     score = r2_score(truths, preds)
                     if score > best_score:
                         best_score = score
