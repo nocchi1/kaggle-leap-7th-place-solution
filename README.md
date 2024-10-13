@@ -3,13 +3,36 @@
 This repository contains the code for the 7th place solution (Ryota Part) in the LEAP - Atmospheric Physics using AI (ClimSim) competition hosted on Kaggle. In this competition, participants were tasked with developing machine learning models that accurately emulate subgrid-scale atmospheric physics in an operational climate model, an important step in improving climate projections and reducing uncertainty surrounding future climate trends.
 
 ## Solution Summary
+In my solution, I primarily combined LSTM, Transformer, and Conv1D models for training. The model inputs included not only the original features but also the features generated through feature engineering that considered domain knowledge. Additionally, to address the subtle issue that, although we should optimize MSE, the influence of outliers was somewhat too strong, I first trained using MAE and then conducted additional training using MSE.
 
-[Provide a detailed summary of your solution, including the main approaches, algorithms, and techniques used.]
+|  | Public LB | Private LB |
+| --- | --- | --- |
+| LSTM based | **0.78682** | **0.78120** |
+| Transformer based | 0.78567 | 0.78058 |
+| Conv1D based | 0.78301 | 0.77506 |
 
-## Preparation
+Our team's final submission is an ensemble of six models, including the above three models of mine. The ensemble weights were optimized using the Nelder-Mead method. For more details, please refer to the URL provided in the Links section.
 
-[Include detailed instructions on how to set up the environment, install dependencies, and prepare the data for running the solution.]
+## Preparationn [to be updated]
+You can set up the environment and download the required data by running the following commands.
+### Setup
+```sh
+. ./bin/setup.sh
+```
+### Download Necessary Data
+```sh
+. ./bin/download.sh
+```
+### Download Additional Data 
+```sh
+. ./bin/download.sh
+```
 
-## Reproducing the Solution
+## Reproducing the Solution [to be updated]
 
 [Provide step-by-step instructions on how to run the code to reproduce the results, including any necessary configuration settings.]
+
+## Links
+- Competition website : [link](https://www.kaggle.com/c/leap-atmospheric-physics-ai-climsim)
+- 7th place solution : [link](https://www.kaggle.com/competitions/leap-atmospheric-physics-ai-climsim/discussion/524111)
+- My team members : [sqrt4kaido](https://www.kaggle.com/nomorevotch), [e-toppo](https://www.kaggle.com/masatomatsui), [Rheinmetall](https://www.kaggle.com/rheinmetall)
