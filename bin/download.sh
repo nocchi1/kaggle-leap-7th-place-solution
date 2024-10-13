@@ -3,7 +3,6 @@
 . .venv/bin/activate
 
 full_train_download=${1:-"true"}
-hf_download=${2:-"true"}
 
 # Download Kaggle Competition Data
 if [ "$full_train_download" = "true" ]; then
@@ -37,8 +36,3 @@ curl -L -o data/input/additional/output_scale.nc https://github.com/leap-stc/Cli
 
 # Download Shared Validation Data - This data is sampled at a 1/7 interval over the period from 0008-02 to 0009-01
 kaggle datasets download ryotak12/leap-shared-validation -f 18.parquet -p data/input
-
-# Download HF Additional Data
-if [ "$hf_download" = "true" ]; then
-    python src/data/hf_download.py
-fi

@@ -4,7 +4,7 @@ from torch import nn
 
 # original ref: https://www.kaggle.com/competitions/lish-moa/discussion/202256
 # another ref: https://www.kaggle.com/code/nyanpn/1st-place-public-2nd-place-solution
-class MoA2ndModel(nn.Module):
+class LEAPMoA2ndModel(nn.Module):
     def __init__(self, in_dim: int, out_dim: int, hidden_size: int):
         super().__init__()
         self.cha_1 = 64  # 256

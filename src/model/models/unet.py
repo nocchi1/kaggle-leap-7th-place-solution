@@ -98,7 +98,7 @@ class Up(nn.Module):
         return x
 
 
-class UNet1D(BaseModel):
+class LEAPUNet1D(BaseModel):
     def __init__(
         self,
         in_channel: int,
