@@ -1,5 +1,3 @@
-from pathlib import PosixPath
-
 import numpy as np
 import polars as pl
 import xarray as xr
@@ -15,9 +13,7 @@ class FeatureEngineering:
             grid_info_path = config.add_path / "ClimSim_low-res_grid-info.nc"
             grid_info = xr.open_dataset(grid_info_path)
             grid_info = pl.from_pandas(grid_info.to_dataframe().reset_index())
-            self.hybi = grid_info.unique(subset=["ilev", "hybi"], maintain_order=True)[
-                "hybi"
-            ].to_numpy()
+            self.hybi = grid_info.unique(subset=["ilev", "hybi"], maintain_order=True)["hybi"].to_numpy()
             np.save(hybi_path, self.hybi)
 
         self.use_latlon = config.use_grid_feat
@@ -44,10 +40,9 @@ class FeatureEngineering:
         exprs = []
         for i in range(60):
             exprs.append(
-                (
-                    pl.col(f"state_q0003_{i}")
-                    / (pl.col(f"state_q0002_{i}") + pl.col(f"state_q0003_{i}"))
-                ).alias(f"state_ice_rate_{i}")
+                (pl.col(f"state_q0003_{i}") / (pl.col(f"state_q0002_{i}") + pl.col(f"state_q0003_{i}"))).alias(
+                    f"state_ice_rate_{i}"
+                )
             )
         df = df.with_columns(exprs)
 
@@ -55,10 +50,9 @@ class FeatureEngineering:
         exprs = []
         for i in range(60):
             exprs.append(
-                (
-                    pl.col(f"state_ice_rate_{i}")
-                    - ((Tf - pl.col(f"state_t_{i}")) / (Tf - Ts)).clip(0, 1)
-                ).alias(f"state_ice_rate_diff_{i}")
+                (pl.col(f"state_ice_rate_{i}") - ((Tf - pl.col(f"state_t_{i}")) / (Tf - Ts)).clip(0, 1)).alias(
+                    f"state_ice_rate_diff_{i}"
+                )
             )
         df = df.with_columns(exprs)
 

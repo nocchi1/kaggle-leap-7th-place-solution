@@ -2,7 +2,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.optim.optimizer import Optimizer
 
-from src.model.models.conv1d import LEAPConv1D
+from src.model.models.conv1d import GridPredConv1D, LEAPConv1D
 from src.model.models.lstm import LEAPLSTM
 from src.model.models.squeezeformer import LEAPSqueezeformer
 from src.model.models.transformer import LEAPTransformer
@@ -53,7 +53,13 @@ class ComponentFactory:
                     multi_task=config.multi_task,
                 )
         elif config.task_type == "grid_pred":
-            pass
+            model = GridPredConv1D(
+                in_dim=config.in_dim,
+                out_dim=config.out_dim,
+                hidden_dim=config.hidden_dim,
+                block_num=config.block_num,
+                kernel_size=config.kernel_size,
+            )
         return model
 
     @staticmethod
@@ -108,7 +114,5 @@ class ComponentFactory:
         else:
             raise ValueError(f"Invalid scheduler_type: {config.scheduler_type}")
 
-        scheduler = get_scheduler(
-            optimizer, scheduler_type=config.scheduler_type, scheduler_args=scheduler_args
-        )
+        scheduler = get_scheduler(optimizer, scheduler_type=config.scheduler_type, scheduler_args=scheduler_args)
         return scheduler

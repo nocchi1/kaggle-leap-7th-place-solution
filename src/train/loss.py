@@ -20,20 +20,17 @@ class LEAPLoss(nn.Module):
 
     def forward(self, y_pred, y_true):
         bs = y_pred.size(0)
-        if y_true.size(-1) == self.config.out_dim * 3:  # マルチタスクを行う場合の学習時
+        if y_true.size(-1) == self.config.out_dim * 3:  # When performing multi-task learning
             loss = self.loss_fn(y_pred, y_true)
             loss_m_v = loss[:, :, : len(VERTICAL_TARGET_COLS)].reshape(bs, -1)
             loss_m_s = loss[:, :, len(VERTICAL_TARGET_COLS) : self.config.out_dim].mean(dim=1)
             loss_s_v = torch.cat(
                 [
-                    loss[
-                        :, :, self.config.out_dim : self.config.out_dim + len(VERTICAL_TARGET_COLS)
-                    ].reshape(bs, -1),
+                    loss[:, :, self.config.out_dim : self.config.out_dim + len(VERTICAL_TARGET_COLS)].reshape(bs, -1),
                     loss[
                         :,
                         :,
-                        self.config.out_dim * 2 : self.config.out_dim * 2
-                        + len(VERTICAL_TARGET_COLS),
+                        self.config.out_dim * 2 : self.config.out_dim * 2 + len(VERTICAL_TARGET_COLS),
                     ].reshape(bs, -1),
                 ],
                 dim=1,

@@ -1,7 +1,7 @@
 import math
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau, LRScheduler
+from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
 from transformers import get_cosine_schedule_with_warmup, get_linear_schedule_with_warmup
 
 
@@ -27,6 +27,7 @@ class CustomCosineAnnealing(LRScheduler):
         gamma (float): Decay rate of the maximum learning rate
         last_epoch (int): The step number from which to resume training
     """
+
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -59,7 +60,6 @@ class CustomCosineAnnealing(LRScheduler):
         self.init_lr()
         super().__init__(optimizer, last_epoch)
 
-
     def init_lr(self):
         self.base_lrs = []
         for param_group in self.optimizer.param_groups:
@@ -78,9 +78,17 @@ class CustomCosineAnnealing(LRScheduler):
         else:
             return [
                 (
-                    base_lr +
-                    (max_lr - base_lr) *
-                    (1 + math.cos(math.pi * (self.steps_in_cycle - self.num_warmup_steps) / (self.current_cycle_steps - self.num_warmup_steps))) / 2
+                    base_lr
+                    + (max_lr - base_lr)
+                    * (
+                        1
+                        + math.cos(
+                            math.pi
+                            * (self.steps_in_cycle - self.num_warmup_steps)
+                            / (self.current_cycle_steps - self.num_warmup_steps)
+                        )
+                    )
+                    / 2
                 )
                 for base_lr, max_lr in zip(self.base_lrs, self.current_max_lrs)
             ]
@@ -93,15 +101,22 @@ class CustomCosineAnnealing(LRScheduler):
                 self.steps_in_cycle = epoch % self.first_cycle_steps
                 self.cycle = epoch // self.first_cycle_steps
             else:
-                n = int(math.log((epoch / self.first_cycle_steps * (self.cycle_factor - 1) + 1), self.cycle_factor))
+                n = int(
+                    math.log(
+                        (epoch / self.first_cycle_steps * (self.cycle_factor - 1) + 1),
+                        self.cycle_factor,
+                    )
+                )
                 self.cycle = n
-                self.steps_in_cycle = epoch - int(self.first_cycle_steps * (self.cycle_factor ** n - 1) / (self.cycle_factor - 1))
+                self.steps_in_cycle = epoch - int(
+                    self.first_cycle_steps * (self.cycle_factor**n - 1) / (self.cycle_factor - 1)
+                )
                 self.current_cycle_steps = self.first_cycle_steps * self.cycle_factor ** (n)
         else:
             self.current_cycle_steps = self.first_cycle_steps
             self.steps_in_cycle = epoch
 
-        self.current_max_lrs = [max(self.min_lr, lr * (self.gamma ** self.cycle)) for lr in self.max_lrs]
+        self.current_max_lrs = [max(self.min_lr, lr * (self.gamma**self.cycle)) for lr in self.max_lrs]
         self.last_epoch = epoch
 
         current_lrs = self.get_lr()

@@ -1,3 +1,4 @@
+# ruff: noqa: B008
 import math
 
 import torch
@@ -6,7 +7,14 @@ from torch import nn
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, in_dim: int, hidden_dim: int = 512, num_heads: int = 8, activation: nn.Module = nn.ReLU(), dropout: float = 0.0):
+    def __init__(
+        self,
+        in_dim: int,
+        hidden_dim: int = 512,
+        num_heads: int = 8,
+        activation: nn.Module = nn.ReLU(),
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = hidden_dim // num_heads

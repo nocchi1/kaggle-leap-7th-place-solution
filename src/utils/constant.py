@@ -129,7 +129,16 @@ VERTICAL_TARGET_COLS = [
     "ptend_u",
     "ptend_v",
 ]
-SCALER_TARGET_COLS = ["cam_out_NETSW", "cam_out_FLWDS", "cam_out_PRECSC", "cam_out_PRECC", "cam_out_SOLS", "cam_out_SOLL", "cam_out_SOLSD", "cam_out_SOLLD"]
+SCALER_TARGET_COLS = [
+    "cam_out_NETSW",
+    "cam_out_FLWDS",
+    "cam_out_PRECSC",
+    "cam_out_PRECC",
+    "cam_out_SOLS",
+    "cam_out_SOLL",
+    "cam_out_SOLSD",
+    "cam_out_SOLLD",
+]
 
 TARGET_MIN_MAX = {
     "ptend_t_0": [-62.895582026739646, 245.9913771015123],

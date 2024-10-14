@@ -17,7 +17,7 @@ from src.utils.constant import (
 )
 
 
-class HFDataLoader:
+class HFDataDownloader:
     def __init__(self, input_dir: Path):
         os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
         self.repo_id = "LEAP/ClimSim_low-res"
@@ -158,5 +158,5 @@ class HFDataLoader:
 
 if __name__ == "__main__":
     input_dir = Path("data/input")
-    loader = HFDataLoader(input_dir)
+    loader = HFDataDownloader(input_dir)
     loader.download()

@@ -1,5 +1,4 @@
 from copy import deepcopy
-from typing import Optional
 
 import torch
 from torch import nn
@@ -54,9 +53,7 @@ class ModelEmaV3(nn.Module):
         self.warmup_gamma = warmup_gamma
         self.warmup_power = warmup_power
         self.foreach = foreach
-        self.device = (
-            "cuda:0" if device == "cuda" else device
-        )  # perform ema on different device from model if set
+        self.device = "cuda:0" if device == "cuda" else device  # perform ema on different device from model if set
         self.exclude_buffers = exclude_buffers
         if self.device is not None and device != next(model.parameters()).device:
             self.foreach = False  # cannot use foreach methods with different devices
@@ -94,9 +91,7 @@ class ModelEmaV3(nn.Module):
         if self.foreach:
             ema_lerp_values = []
             model_lerp_values = []
-            for ema_v, model_v in zip(
-                self.module.state_dict().values(), model.state_dict().values()
-            ):
+            for ema_v, model_v in zip(self.module.state_dict().values(), model.state_dict().values()):
                 if ema_v.is_floating_point():
                     ema_lerp_values.append(ema_v)
                     model_lerp_values.append(model_v)
@@ -109,9 +104,7 @@ class ModelEmaV3(nn.Module):
                 torch._foreach_mul_(ema_lerp_values, scalar=decay)
                 torch._foreach_add_(ema_lerp_values, model_lerp_values, alpha=1.0 - decay)
         else:
-            for ema_v, model_v in zip(
-                self.module.state_dict().values(), model.state_dict().values()
-            ):
+            for ema_v, model_v in zip(self.module.state_dict().values(), model.state_dict().values()):
                 if ema_v.is_floating_point():
                     ema_v.lerp_(model_v, weight=1.0 - decay)
                 else:

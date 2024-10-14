@@ -35,12 +35,8 @@ class LEAPTransformer(BaseModel):
             norm_first=False,
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=trans_num_layers)
-        self.lstm_blocks = nn.ModuleList(
-            [LSTMBlock(hidden_dim, scaler_num) for _ in range(lstm_block_num)]
-        )
-        self.head = nn.Sequential(
-            nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim)
-        )
+        self.lstm_blocks = nn.ModuleList([LSTMBlock(hidden_dim, scaler_num) for _ in range(lstm_block_num)])
+        self.head = nn.Sequential(nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim))
 
     def forward(self, x):
         s_x = x[:, 0, -self.scaler_num :]

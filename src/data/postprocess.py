@@ -18,9 +18,7 @@ class PostProcessor:
 
         _, self.target_cols = get_io_columns(config)
         self.old_factor_dict = get_sub_factor(config.input_path, old=True)
-        self.sub_cols = pl.read_parquet(
-            config.input_path / "sample_submission.parquet", n_rows=1
-        ).columns
+        self.sub_cols = pl.read_parquet(config.input_path / "sample_submission.parquet", n_rows=1).columns
 
         self.pp_x_cols = [f"state_q0002_{i}" for i in range(12, 27)]
         self.pp_y_cols = [f"ptend_q0002_{i}" for i in range(12, 27)]
@@ -31,9 +29,7 @@ class PostProcessor:
             config.input_path / "test_shrinked.parquet", columns=["sample_id"] + self.pp_x_cols
         )
 
-        add_pp_y_cols = [f"ptend_q0002_{i}" for i in range(60)] + [
-            f"ptend_q0003_{i}" for i in range(60)
-        ]
+        add_pp_y_cols = [f"ptend_q0002_{i}" for i in range(60)] + [f"ptend_q0003_{i}" for i in range(60)]
         self.add_pp_y_cols = [col for col in add_pp_y_cols if col in self.target_cols]
         self.add_pp_x_cols = [col.replace("ptend", "state") for col in self.add_pp_y_cols]
         self.add_valid_pp_df = pl.read_parquet(
@@ -99,7 +95,7 @@ class PostProcessor:
         if pred_type == "oof":
             self.tuning_threshold(pred_df)
 
-        assert len(self.th_dict) > 0  # oofから実行する必要がある
+        assert len(self.th_dict) > 0  # Needs to be executed from the oof
         exprs = []
         for y_col, (best_th, _) in self.th_dict.items():
             x_col = y_col.replace("ptend", "state")
@@ -143,9 +139,7 @@ class PostProcessor:
 
                     th = base_th * corr
                     preds = pred_df.select(
-                        pl.when(pl.col(f"{x_col}_next") < th)
-                        .then(-1 * pl.col(x_col) / 1200)
-                        .otherwise(pl.col(y_col))
+                        pl.when(pl.col(f"{x_col}_next") < th).then(-1 * pl.col(x_col) / 1200).otherwise(pl.col(y_col))
                     ).to_numpy()
 
                     truths = pred_df[f"{y_col}_gt"].to_numpy()
@@ -163,9 +157,7 @@ class PostProcessor:
         return oof_df
 
     def create_sub_df(self, sub_df: pl.DataFrame):
-        sub_df = sub_df.with_columns(
-            sample_id=pl.concat_str([pl.lit("test_"), pl.col("sample_id")])
-        )
+        sub_df = sub_df.with_columns(sample_id=pl.concat_str([pl.lit("test_"), pl.col("sample_id")]))
         sub_df = sub_df.select(self.sub_cols)
         sub_df.write_csv(self.config.output_path / "submission_pp.csv")
         return sub_df

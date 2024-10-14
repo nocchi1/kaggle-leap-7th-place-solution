@@ -12,19 +12,24 @@ from src.utils.competition_utils import multiply_old_factor, shrink_memory
 class DataProvider:
     def __init__(self, config: DictConfig):
         self.config = config
+        self.all_target_cols = pl.read_parquet(config.input_path / "sample_submission.parquet", n_rows=1).columns[1:]
 
     def load_data(self) -> tuple[pl.DataFrame, pl.DataFrame]:
         train_df, test_df = self._load_data()
-        train_df = train_df.with_columns(
-            grid_id=(pl.col("sample_id") % 384).cast(pl.Int64), time_id=pl.col("sample_id") // 384
-        )
+        train_df = train_df.with_columns(grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384)
+        if self.config.task_type == "grid_pred":
+            train_df = train_df.drop(self.all_target_cols)
+
         train_df = self._downsample(train_df, self.config.run_mode)
         if self.config.task_type == "main" and self.config.use_grid_feat:
-            train_df, test_df = self._merge_grid_feat(train_df, test_df)
+            use_cols = ["lat", "lon"]
+            train_df, test_df = self._merge_grid_feat(train_df, test_df, use_cols)
 
         train_df = split_validation(self.config, train_df)
-        if self.config.mul_old_factor:
+
+        if self.config.task_type == "main" and self.config.mul_old_factor:
             train_df = multiply_old_factor(self.config.input_path, train_df)
+
         train_df = train_df.drop(["time_id"])
         return train_df, test_df
 
@@ -50,13 +55,9 @@ class DataProvider:
             test_df = pl.read_parquet(self.config.input_path / "test_shrinked.parquet")
 
         if not (self.config.input_path / "sample_submission.parquet").exists():
-            convert_csv_to_parquet(
-                self.config.input_path / "sample_submission.csv", delete_csv=True
-            )
+            convert_csv_to_parquet(self.config.input_path / "sample_submission.csv", delete_csv=True)
         if not (self.config.input_path / "sample_submission_old.parquet").exists():
-            convert_csv_to_parquet(
-                self.config.input_path / "sample_submission_old.csv", delete_csv=True
-            )
+            convert_csv_to_parquet(self.config.input_path / "sample_submission_old.csv", delete_csv=True)
         return train_df, test_df
 
     def _downsample(self, train_df: pl.DataFrame, run_mode: Literal["full", "dev", "debug"]):
@@ -70,7 +71,7 @@ class DataProvider:
         self,
         train_df: pl.DataFrame,
         test_df: pl.DataFrame,
-        use_cols: list[str] | None = ["lat", "lon"],
+        use_cols: list[str] | None,
     ):
         # Need to predict grid_id for test data
         test_grid_id = pl.read_parquet(self.config.add_path / "test_grid_id.parquet")
@@ -93,6 +94,7 @@ class DataProvider:
             grid_feat = grid_info.group_by("grid_id").agg(
                 [pl.col(col).mean() for col in grid_info.columns if col not in ["grid_id", "time"]]
             )
+            grid_feat = grid_feat.with_columns(grid_id=pl.col("grid_id").cast(pl.Int32))
             grid_feat.write_parquet(feat_path)
 
         if use_cols is not None:

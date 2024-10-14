@@ -6,7 +6,10 @@ class SEBlock1D(nn.Module):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool1d(output_size=1)
         self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False), nn.ReLU(), nn.Linear(channel // reduction, channel, bias=False), nn.Sigmoid()
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):

@@ -1,9 +1,7 @@
-import torch.nn.functional as F
 from torch import nn
 
 from src.model.models.base import BaseModel
 from src.model.modules.conv_extractor import ConvExtractor
-from src.model.modules.positional_encoding import VerticalEncoding
 from src.model.modules.squeezeformer_block import ResidualConnectionModule, SqueezeformerBlock
 
 
@@ -52,9 +50,7 @@ class LEAPSqueezeformer(BaseModel):
                     )
                 )
 
-        self.head = nn.Sequential(
-            nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim)
-        )
+        self.head = nn.Sequential(nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim))
 
     def forward(self, x):
         x = super().forward(x)

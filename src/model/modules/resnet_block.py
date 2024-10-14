@@ -45,9 +45,7 @@ class ResNetBlock(nn.Module):
         assert kernel_size % 2 == 1, "Kernel size must be odd"
         self.in_dim = in_dim
         self.out_dim = out_dim
-        self.conv_skip = nn.Conv1d(
-            in_channels=in_dim, out_channels=out_dim, kernel_size=1, stride=1, padding=0
-        )
+        self.conv_skip = nn.Conv1d(in_channels=in_dim, out_channels=out_dim, kernel_size=1, stride=1, padding=0)
         if inception:
             self.conv_1 = InceptionModule(in_dim, out_dim)
             self.conv_2 = InceptionModule(out_dim, out_dim)

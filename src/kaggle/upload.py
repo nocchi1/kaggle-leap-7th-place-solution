@@ -18,11 +18,11 @@ dir_mode = args.dir_mode
 public = args.public
 user_id = "ryotak12"
 
-# metadataを取得
+# get metadata
 command = f"kaggle datasets init -p {dir_path}"
 subprocess.run(command.split(), check=False)
 
-# metadataを書き換え
+# rewrite metadata
 metadata = json.load(open(Path(dir_path) / "dataset-metadata.json"))
 metadata["title"] = title
 metadata["id"] = user_id + "/" + slugify(title, replacements=[["&", "and"]])

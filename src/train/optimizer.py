@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from torch import nn
 from torch.optim import Adam, AdamW
 

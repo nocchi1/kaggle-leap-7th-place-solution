@@ -11,8 +11,16 @@ class LSTMBlock(nn.Module):
             batch_first=True,
             bidirectional=True,
         )
-        self.fc_h = nn.Sequential(nn.Linear(scaler_num, hidden_dim // 2), nn.LayerNorm(hidden_dim // 2), nn.Linear(hidden_dim // 2, hidden_dim // 2))
-        self.fc_c = nn.Sequential(nn.Linear(scaler_num, hidden_dim // 2), nn.LayerNorm(hidden_dim // 2), nn.Linear(hidden_dim // 2, hidden_dim // 2))
+        self.fc_h = nn.Sequential(
+            nn.Linear(scaler_num, hidden_dim // 2),
+            nn.LayerNorm(hidden_dim // 2),
+            nn.Linear(hidden_dim // 2, hidden_dim // 2),
+        )
+        self.fc_c = nn.Sequential(
+            nn.Linear(scaler_num, hidden_dim // 2),
+            nn.LayerNorm(hidden_dim // 2),
+            nn.Linear(hidden_dim // 2, hidden_dim // 2),
+        )
         self.fc_1 = nn.Linear(hidden_dim, hidden_dim * 4)
         self.fc_2 = nn.Linear(hidden_dim * 4, hidden_dim)
         self.ln_1 = nn.LayerNorm([60, hidden_dim])

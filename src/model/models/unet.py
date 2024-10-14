@@ -21,12 +21,8 @@ class DoubleConv(nn.Module):
         if self.residual and in_channel != out_channel:
             self.res_conv = nn.Conv1d(in_channel, out_channel, kernel_size=1, padding=0)
 
-        self.conv1 = nn.Conv1d(
-            in_channel, out_channel, kernel_size=kernel_size, padding=kernel_size // 2, bias=False
-        )
-        self.conv2 = nn.Conv1d(
-            out_channel, out_channel, kernel_size=kernel_size, padding=kernel_size // 2, bias=False
-        )
+        self.conv1 = nn.Conv1d(in_channel, out_channel, kernel_size=kernel_size, padding=kernel_size // 2, bias=False)
+        self.conv2 = nn.Conv1d(out_channel, out_channel, kernel_size=kernel_size, padding=kernel_size // 2, bias=False)
         self.bn1 = nn.BatchNorm1d(out_channel)
         self.bn2 = nn.BatchNorm1d(out_channel)
         self.relu = nn.ReLU()
@@ -114,27 +110,13 @@ class LEAPUNet1D(BaseModel):
             nn.BatchNorm1d(max_hidden_channel // 8),
             nn.CELU(alpha=1.0),
         )
-        self.dconv = DoubleConv(
-            max_hidden_channel // 8, max_hidden_channel // 4, kernel_size, dropout, residual
-        )
-        self.down1 = Down(
-            max_hidden_channel // 4, max_hidden_channel // 2, kernel_size, dropout, residual
-        )
-        self.down2 = Down(
-            max_hidden_channel // 2, max_hidden_channel, kernel_size, dropout, residual
-        )
-        self.down3 = Down(
-            max_hidden_channel, max_hidden_channel, kernel_size, dropout, residual, no_down=True
-        )
-        self.down4 = Down(
-            max_hidden_channel, max_hidden_channel, kernel_size, dropout, residual, no_down=True
-        )
-        self.up1 = Up(
-            max_hidden_channel * 2, max_hidden_channel, kernel_size, dropout, residual, no_up=True
-        )
-        self.up2 = Up(
-            max_hidden_channel * 2, max_hidden_channel, kernel_size, dropout, residual, no_up=True
-        )
+        self.dconv = DoubleConv(max_hidden_channel // 8, max_hidden_channel // 4, kernel_size, dropout, residual)
+        self.down1 = Down(max_hidden_channel // 4, max_hidden_channel // 2, kernel_size, dropout, residual)
+        self.down2 = Down(max_hidden_channel // 2, max_hidden_channel, kernel_size, dropout, residual)
+        self.down3 = Down(max_hidden_channel, max_hidden_channel, kernel_size, dropout, residual, no_down=True)
+        self.down4 = Down(max_hidden_channel, max_hidden_channel, kernel_size, dropout, residual, no_down=True)
+        self.up1 = Up(max_hidden_channel * 2, max_hidden_channel, kernel_size, dropout, residual, no_up=True)
+        self.up2 = Up(max_hidden_channel * 2, max_hidden_channel, kernel_size, dropout, residual, no_up=True)
         self.up3 = Up(
             max_hidden_channel + max_hidden_channel // 2,
             max_hidden_channel // 2,

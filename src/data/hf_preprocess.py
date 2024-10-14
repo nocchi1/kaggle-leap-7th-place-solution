@@ -27,9 +27,7 @@ class HFPreprocessor:
         self.input_cols, self.target_cols = get_io_columns(config)
         self.fer = FeatureEngineering(config)
         self.ppr = Preprocessor(config)
-        self.input_clip_dict = pickle.load(
-            open(self.config.output_path / "input_clip_dict.pkl", "rb")
-        )
+        self.input_clip_dict = pickle.load(open(self.config.output_path / "input_clip_dict.pkl", "rb"))
         # Year-months used for shared_valid
         self.valid_ym = [
             "0008-07",
@@ -48,15 +46,11 @@ class HFPreprocessor:
             for file in tqdm(self.hf_files):
                 df = pl.read_parquet(file)
                 df = shrink_memory(df, refer_df)
-                df.write_parquet(
-                    self.config.add_path / "huggingface" / f"{file.stem}_shrinked.parquet"
-                )
+                df.write_parquet(self.config.add_path / "huggingface" / f"{file.stem}_shrinked.parquet")
                 file.unlink()
             self.hf_files = list((self.config.add_path / "huggingface").glob("*.parquet"))
 
-    def convert_numpy_array(
-        self, save_method: Literal["npy", "hdf5"] = "npy", unlink_parquet: bool = True
-    ):
+    def convert_numpy_array(self, save_method: Literal["npy", "hdf5"] = "npy", unlink_parquet: bool = True):
         output_path = self.config.add_path / "huggingface"
         self.hf_files = sorted(self.hf_files, key=lambda x: x.stem)
         for i, file in enumerate(tqdm(self.hf_files)):
@@ -66,9 +60,7 @@ class HFPreprocessor:
                 continue
 
             df = pl.read_parquet(file)
-            df = df.with_columns(
-                grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384
-            )
+            df = df.with_columns(grid_id=(pl.col("sample_id") % 384), time_id=pl.col("sample_id") // 384)
             if self.config.mul_old_factor:
                 df = multiply_old_factor(self.config.input_path, df)
 
@@ -83,7 +75,7 @@ class HFPreprocessor:
                 input_cols=self.input_cols,
                 clip_dict=self.input_clip_dict,
             )
-            # multi_task=Trueでなくても, hdf5作成時にはmulti_task用のターゲットを作成しておく
+            # Create targets for multi-task, even if multi_task=True is not set
             df = self.ppr._get_forward_and_back_target(df, shift_steps=7)
             X_train = self.ppr._convert_input_array(df, self.config.input_shape)
             y_train = np.concatenate(
@@ -101,12 +93,8 @@ class HFPreprocessor:
             elif save_method == "hdf5":
                 if i == 0:
                     with h5py.File(output_path / "hf_data.h5", "w") as f:
-                        f.create_dataset(
-                            "X", data=X_train, maxshape=(None, *X_train.shape[1:]), chunks=True
-                        )
-                        f.create_dataset(
-                            "y", data=y_train, maxshape=(None, *y_train.shape[1:]), chunks=True
-                        )
+                        f.create_dataset("X", data=X_train, maxshape=(None, *X_train.shape[1:]), chunks=True)
+                        f.create_dataset("y", data=y_train, maxshape=(None, *y_train.shape[1:]), chunks=True)
                 else:
                     with h5py.File(output_path / "hf_data.h5", "a") as f:
                         f["X"].resize((f["X"].shape[0] + X_train.shape[0]), axis=0)

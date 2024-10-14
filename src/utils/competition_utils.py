@@ -1,5 +1,4 @@
 from pathlib import PosixPath
-from typing import Dict, List, Tuple
 
 import numpy as np
 import polars as pl
@@ -18,14 +17,10 @@ from src.utils.constant import (
 )
 
 
-def shrink_memory(
-    apply_df: pl.DataFrame, refer_df: pl.DataFrame | None = None, min_th: float = 1e-37
-) -> pl.DataFrame:
+def shrink_memory(apply_df: pl.DataFrame, refer_df: pl.DataFrame | None = None, min_th: float = 1e-37) -> pl.DataFrame:
     if "sample_id" in apply_df.columns and apply_df["sample_id"].dtype == pl.Utf8:
         apply_df = apply_df.with_columns(
-            sample_id=pl.col("sample_id").map_elements(
-                lambda x: int(x.split("_")[1]), return_dtype=pl.Int32
-            )
+            sample_id=pl.col("sample_id").map_elements(lambda x: int(x.split("_")[1]), return_dtype=pl.Int32)
         )
 
     num_cols = [col for col in apply_df.columns if apply_df[col].dtype == pl.Float64]
@@ -78,9 +73,7 @@ def get_io_columns(config: DictConfig) -> tuple[list[str], list[str]]:
     for col in SCALER_TARGET_COLS:
         target_cols.append(col)
     # Remove columns where weight=0 and those applied with pp
-    target_cols = [
-        col for col in target_cols if col not in ZERO_WEIGHT_TARGET_COLS + PP_TARGET_COLS
-    ]
+    target_cols = [col for col in target_cols if col not in ZERO_WEIGHT_TARGET_COLS + PP_TARGET_COLS]
     return input_cols, target_cols
 
 
@@ -115,18 +108,12 @@ def remove_duplicate_records(target_df: pl.DataFrame, refer_df: pl.DataFrame) ->
         refer_df: DataFrame used as a reference to check for duplicates
     """
     use_cols = (
-        [f"state_t_{i}" for i in range(60)]
-        + [f"state_v_{i}" for i in range(60)]
-        + [f"state_u_{i}" for i in range(60)]
+        [f"state_t_{i}" for i in range(60)] + [f"state_v_{i}" for i in range(60)] + [f"state_u_{i}" for i in range(60)]
     )
     # Convert to integers for duplicate detection
-    target_df = target_df.with_columns(
-        [(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols]
-    )
+    target_df = target_df.with_columns([(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols])
     target_df = target_df.with_columns(target_flag=pl.lit(1))
-    refer_df = refer_df.with_columns(
-        [(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols]
-    )
+    refer_df = refer_df.with_columns([(pl.col(col) * 10000).cast(pl.Int32).alias(f"{col}_int") for col in use_cols])
     refer_df = refer_df.with_columns(target_flag=pl.lit(0))
 
     target_df = pl.concat([target_df, refer_df], how="diagonal")
@@ -154,7 +141,7 @@ def evaluate_metric(
             indiv_scores.append(score)
 
     eval_num = len(indiv_scores)
-    # y_pred内に存在しないカラムは1として計算する -> sub_factorが0のカラム, 後処理を適用するカラム
+    # Columns that do not exist in y_pred are calculated as 1
     if target_num - eval_num > 0:
         total_score = (total_score + (target_num - eval_num)) / target_num
     return total_score, indiv_scores

@@ -1,4 +1,5 @@
 exp: '147'
+run_mode: 'hf'
 task_type: 'main'
 
 mul_old_factor: true

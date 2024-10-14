@@ -23,12 +23,8 @@ class LEAPLSTM(BaseModel):
         self.scaler_num = scaler_num
         self.conv_extractor = ConvExtractor(in_dim, hidden_dim)
         self.pe = VerticalEncoding(hidden_dim, learnable=True)
-        self.lstm_blocks = nn.ModuleList(
-            [LSTMBlock(hidden_dim, scaler_num) for _ in range(block_num)]
-        )
-        self.head = nn.Sequential(
-            nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim)
-        )
+        self.lstm_blocks = nn.ModuleList([LSTMBlock(hidden_dim, scaler_num) for _ in range(block_num)])
+        self.head = nn.Sequential(nn.Linear(hidden_dim, 64), nn.LayerNorm([60, 64]), nn.ReLU(), nn.Linear(64, out_dim))
 
     def forward(self, x):
         s_x = x[:, 0, -self.scaler_num :]

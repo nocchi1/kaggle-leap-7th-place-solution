@@ -18,7 +18,7 @@ class LEAPDataset(Dataset):
         y: np.ndarray | None = None,
         hf_read_type: Literal["npy", "hdf5"] = "npy",
     ):
-        self.y_dtype = torch.float if config.task_type == "main" else torch.long
+        self.task_type = config.task_type
         self.out_dim = config.out_dim * 3 if config.multi_task else config.out_dim
         self.hf_path = config.add_path / "huggingface"
 
@@ -30,7 +30,7 @@ class LEAPDataset(Dataset):
             self.batch_file_size = config.batch_file_size
             self.all_yms = self.get_all_yms()
             self.update()
-        # HDF5の読み込みが遅い
+        # HDF5 Loading is very slow
         elif config.run_mode == "hf" and hf_read_type == "hdf5":
             self.h5_file = h5py.File(self.hf_path / "hf_data.h5", "r")
             self.X = self.h5_file["X"]
@@ -39,7 +39,10 @@ class LEAPDataset(Dataset):
     def __getitem__(self, idx: int):
         data = [torch.tensor(self.X[idx], dtype=torch.float)]
         if self.y is not None:
-            data.append(torch.tensor(self.y[idx, :, : self.out_dim], dtype=self.y_dtype))
+            if self.task_type == "main":
+                data.append(torch.tensor(self.y[idx, :, : self.out_dim], dtype=torch.float))
+            elif self.task_type == "grid_pred":
+                data.append(torch.tensor(self.y[idx], dtype=torch.long))
         return data
 
     def __len__(self):
@@ -81,11 +84,7 @@ def get_dataloader(
 ) -> DataLoader:
     dataset = LEAPDataset(config, ids, X, y, hf_read_type)
     if is_train:
-        data_loader = DataLoader(
-            dataset, batch_size=config.train_batch, shuffle=True, pin_memory=True, drop_last=True
-        )
+        data_loader = DataLoader(dataset, batch_size=config.train_batch, shuffle=True, pin_memory=True, drop_last=True)
     else:
-        data_loader = DataLoader(
-            dataset, batch_size=config.eval_batch, shuffle=False, pin_memory=True, drop_last=False
-        )
+        data_loader = DataLoader(dataset, batch_size=config.eval_batch, shuffle=False, pin_memory=True, drop_last=False)
     return data_loader

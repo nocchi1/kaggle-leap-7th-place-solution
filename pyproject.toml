@@ -55,7 +55,7 @@ packages = ["src/kaggle_leap_atmospheric_physics_ai_climsim"]
 
 [tool.ruff]
 exclude = [".git", ".mypy_cache", ".ruff_cache", ".venv", "third_party"]
-line-length = 100
+line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
@@ -76,6 +76,8 @@ ignore = [
     "B905",  # Zip-without-explicit-strict
     "E501",  # Line too long
     "F403",  # Unable to detect undefined names
+    "N803", # Argument name should be lowercase
+    "N806", # Variable in function should be lowercase
     "N812",  # Lowercase imported as non-lowercase
     "N999",  # Invalid module name
     "PLR0912",  # Too many branches
@@ -87,4 +89,3 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 line-ending = "auto"
-
