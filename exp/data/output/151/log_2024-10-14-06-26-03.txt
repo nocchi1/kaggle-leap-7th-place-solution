@@ -1,0 +1,4 @@
+[ 2024-10-14 06:26:03 | INFO ] Start EXP=151...
+[ 2024-10-14 06:52:18 | INFO ] [Valid] : Epoch=0, Loss=0.17575, Score=0.67290, Best Col-Wise Score=0.67290
+[ 2024-10-14 07:06:24 | INFO ] [Train] : Epoch=0, Loss=0.18005, LR=4.99280e-04
+[ 2024-10-14 07:15:19 | INFO ] [Valid] : Epoch=1, Loss=0.16446, Score=0.69192, Best Col-Wise Score=0.69334

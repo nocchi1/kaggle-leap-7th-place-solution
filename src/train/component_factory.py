@@ -4,6 +4,7 @@ from torch.optim.optimizer import Optimizer
 
 from src.model.models.conv1d import LEAPConv1D
 from src.model.models.lstm import LEAPLSTM
+from src.model.models.squeezeformer import LEAPSqueezeformer
 from src.model.models.transformer import LEAPTransformer
 from src.train.loss import LEAPLoss
 from src.train.optimizer import get_optimizer
@@ -40,6 +41,15 @@ class ComponentFactory:
                     trans_num_layers=config.trans_num_layers,
                     lstm_block_num=config.lstm_block_num,
                     scaler_num=config.scaler_num,
+                    multi_task=config.multi_task,
+                )
+            elif config.model_type == "squeezeformer":
+                model = LEAPSqueezeformer(
+                    in_dim=config.in_dim,
+                    out_dim=config.out_dim,
+                    hidden_dim=config.hidden_dim,
+                    block_num=config.block_num,
+                    kernel_size=config.kernel_size,
                     multi_task=config.multi_task,
                 )
         elif config.task_type == "grid_pred":

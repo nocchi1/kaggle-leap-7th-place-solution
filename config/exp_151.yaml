@@ -1,4 +1,4 @@
-exp: '146'
+exp: '151'
 task_type: 'main'
 
 mul_old_factor: true
@@ -11,25 +11,25 @@ input_scale_method: 'standard'
 target_scale_method: 'standard_y2'
 multi_task: false
 
-model_type: 'lstm'
+model_type: 'squeezeformer'
 in_dim: 86
 out_dim: 14
 hidden_dim: 256
-scaler_num: 16
 block_num: 6
+kernel_size: 5
 
 loss_type: 'mae'
 ema: false
 ema_decay: 0.999
-train_batch: 1024
-eval_batch: 4096
+train_batch: 512
+eval_batch: 2048
 batch_file_size: 5 # total=89
 epochs: 240
 eval_step:
-  hf: 4000
-  full: 4000
-  dev: 2000
-  debug: 20
+  hf: 8000
+  full: 8000
+  dev: 4000
+  debug: 40
 out_clip: true
 
 optimizer_type: 'adamw'
@@ -50,4 +50,3 @@ add_loss_type: 'mse'
 add_epochs: 90
 add_lr: 1e-5
 add_first_cycle_epochs: 90
-

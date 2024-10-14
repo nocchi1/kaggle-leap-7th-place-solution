@@ -1,5 +1,4 @@
 exp: '145'
-run_mode: 'hf'  # hf, full, dev, debug
 task_type: 'main'
 
 mul_old_factor: true
