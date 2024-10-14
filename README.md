@@ -34,7 +34,7 @@ Please note that this dataset is **744GB** in size and will take a significant a
 python src/data/hf_download.py
 ```
 
-## Reproducing the Solution [to be updated]
+## Reproducing the Solution
 You can train all models and run inference on the test data by running the following command.
 ```sh
 . ./bin/run.sh
