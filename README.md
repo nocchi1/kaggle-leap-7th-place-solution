@@ -35,8 +35,10 @@ python src/data/hf_download.py
 ```
 
 ## Reproducing the Solution [to be updated]
-
-[Provide step-by-step instructions on how to run the code to reproduce the results, including any necessary configuration settings.]
+You can train all models and run inference on the test data by running the following command.
+```sh
+. ./bin/run.sh
+```
 
 ## Links
 - Competition website : [link](https://www.kaggle.com/c/leap-atmospheric-physics-ai-climsim)
