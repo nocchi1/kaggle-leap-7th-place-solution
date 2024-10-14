@@ -11,7 +11,7 @@ In my solution, I trained models based on LSTM, Transformer, and Conv1D, where e
 | Transformer based | 0.78567 | 0.78058 |
 | Conv1D based | 0.78301 | 0.77506 |
 
-Our team's final submission is an ensemble of six models, including the above three models of mine. The ensemble weights were optimized using the Nelder-Mead method. For more details, please refer to the URL provided in the Links section.
+Our team's final submission consisted of an ensemble of six models, incorporating the three models described above. The ensemble weights were optimized using the Nelder-Mead method. For more details, please refer to the URL provided in the Links section.
 
 ## Preparation
 You can set up the environment and download the required data by running the following commands.
@@ -35,7 +35,7 @@ python src/data/hf_download.py
 ```
 
 ## Reproducing the Solution
-You can train all models and run inference on the test data by running the following command.
+You can train all models and make predictions for the test data by running the following command.
 ```sh
 . ./bin/run.sh
 ```
