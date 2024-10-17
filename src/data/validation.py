@@ -1,4 +1,4 @@
-from pathlib import PosixPath
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -21,7 +21,7 @@ def split_holdout(
     train_df: pl.DataFrame,
     split_method: Literal["random", "timeseries", "shared"],
     valid_ratio: float | None = None,
-    valid_dir: PosixPath | None = None,
+    valid_dir: Path | None = None,
 ):
     if split_method == "random":
         train_df = train_df.with_columns(

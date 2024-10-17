@@ -1,4 +1,4 @@
-from pathlib import PosixPath
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -39,14 +39,14 @@ def shrink_memory(apply_df: pl.DataFrame, refer_df: pl.DataFrame | None = None, 
     return apply_df
 
 
-def get_sub_factor(input_path: PosixPath, old: bool = False) -> dict[str, float]:
+def get_sub_factor(input_path: Path, old: bool = False) -> dict[str, float]:
     suffix = "_old" if old else ""
     sample_df = pl.read_parquet(input_path / f"sample_submission{suffix}.parquet", n_rows=1)
     factor_dict = dict(zip(sample_df.columns[1:], sample_df.to_numpy()[0][1:]))
     return factor_dict
 
 
-def multiply_old_factor(input_path: PosixPath, train_df: pl.DataFrame) -> pl.DataFrame:
+def multiply_old_factor(input_path: Path, train_df: pl.DataFrame) -> pl.DataFrame:
     factor_dict = get_sub_factor(input_path, old=True)
     exprs = []
     for col, factor in factor_dict.items():

@@ -1,8 +1,8 @@
 import sys
-from pathlib import PosixPath
+from pathlib import Path
 
 
-def get_logger(log_dir: PosixPath, stdout: bool = True):
+def get_logger(log_dir: Path, stdout: bool = True):
     from loguru import logger
 
     logger.remove()  # remove default setting

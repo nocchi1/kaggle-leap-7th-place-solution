@@ -1,4 +1,4 @@
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -29,7 +29,7 @@ class HorizontalEncoding(nn.Module):
     def __init__(
         self,
         hidden_dim: int,
-        input_path: PosixPath = Path("../data/input"),
+        input_path: Path = Path("../data/input"),
         from_coord: bool = False,
     ):
         super().__init__()
