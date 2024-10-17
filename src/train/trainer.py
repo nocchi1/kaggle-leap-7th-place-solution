@@ -112,7 +112,7 @@ class Trainer:
             eval_count = sorted(weight_numbers)[-1] + 1
             best_score = retrain_best_score
 
-        # 学習ループの開始
+        # start training loop
         for epoch in tqdm(range(self.config.epochs)):
             self.model.train()
             self.train_loss.reset()
