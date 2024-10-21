@@ -13,8 +13,8 @@ from src.utils.competition_utils import clipping_input
 
 
 def main():
-    parser = argparse.ArgumentParser(description="")
     # Setup
+    parser = argparse.ArgumentParser(description="")
     parser.add_argument("--config_name", help="config file name", type=str, required=True)
     args = parser.parse_args()
 
