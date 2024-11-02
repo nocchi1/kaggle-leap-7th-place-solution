@@ -12,12 +12,8 @@ from src.utils import TimeUtil, get_config, get_logger, seed_everything
 from src.utils.competition_utils import clipping_input
 
 
-def main():
+def main(args):
     # Setup
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument("--config_name", help="config file name", type=str, required=True)
-    args = parser.parse_args()
-
     config = get_config(args.config_name, config_dir=Path("./config"))
     logger = get_logger(config.output_path)
     logger.info(f"Start exp={config.exp}, run_mode={config.run_mode}")
@@ -138,4 +134,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("--config_name", help="config file name", type=str, required=True)
+    args = parser.parse_args()
+    
+    main(args)
