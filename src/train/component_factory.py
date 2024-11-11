@@ -71,7 +71,7 @@ class ComponentFactory:
         return loss_fn
 
     @staticmethod
-    def get_optimizer(config: DictConfig, model):
+    def get_optimizer(config: DictConfig, model: nn.Module):
         optimizer = get_optimizer(
             model,
             optimizer_type=config.optimizer_type,
